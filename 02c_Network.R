@@ -1,16 +1,16 @@
-###SLEEP_PTSD_ED###
+### SLEEP_PTSD_ED ###
 
-#load required packages
-library(qgraph)
-library(bootnet) 
-library(networktools)
-library(dplyr)
-library(magrittr)
-library(forcats)
+# load required packages
+if (!require("bootnet")) {install.packages("bootnet"); require("bootnet")}
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}
+if (!require("forcats")) {install.packages("forcats"); require("forcats")}
+if (!require("magrittr")) {install.packages("magrittr"); require("magrittr")}
+if (!require("NetworkComparisonTest")) {install.packages("NetworkComparisonTest"); require("NetworkComparisonTest")}
+if (!require("networktools")) {install.packages("networktools"); require("networktools")}
+if (!require("qgraph")) {install.packages("qgraph"); require("qgraph")}
 
-library(NetworkComparisonTest)
-
-#https://reisrgabriel.com/blog/2021-10-11-compare-centrality/
+# Centrality function 
+# https://reisrgabriel.com/blog/2021-10-11-compare-centrality/
 compareCentrality <- function(net1, net2,
                               include = c("Strength",
                                           "Closeness",
@@ -82,14 +82,16 @@ difference_value <- function(NCT, alpha = 0.05){
         "with p-value =", p_value, "\n----\n")
   }
 }
-#upload data
+
+# Import data
 
 data <- read.csv("Created_Data/ED_ptsd/SLEEPPTSDEDS_imputed_11-21-23.csv")
 data <- data %>% dplyr::select(-id)
 data <- na.omit(data)
-#check data 
-summary(data)
 
+# Check data 
+summary(data)
+glimpse(data)
 colnames(data)
 colnames(data)[13:14] = c("bdi_16", "bdi_20")
 
@@ -97,74 +99,32 @@ colnames(data)[13:14] = c("bdi_16", "bdi_20")
 set.seed(1210)
 
 
-#EVERYONE NETWORK 
+#### Network with combined sample ###
 network_all <- estimateNetwork(data %>% dplyr::select(-PTSDyn), 
                                default = "EBICglasso", 
                                corMethod = "cor", 
-                               corArgs = list(method = "spearman", use = "pairwise.complete.obs")) #use Spearman correlation
+                               corArgs = list(method = "spearman", use = "pairwise.complete.obs")) # Spearman correlations
 
 summary(network_all)
 network_all$graph
 plot(network_all)
 
 # Plot graph 
-n=16 #number of nodes
-colnames(data)
-groupsint=list("Eating Disorder"=c(1:6),"Sleep Disturbances"=c(13:16),"PTSD"=c(7:12))
-names = c("binge", "purge", "fast", "restrict", "fear_wt", "feel_fat", 
-           "intrusive", "avoid_think", "avoid_act", "unable_pos", "alert", "startle", 
-           "sleep_pat", "fatigue", "nightmare", "sleep_troub")
+# Number of nodes
+n = 16 
 
+# Symptom clusters
+groupsint = list("Eating Disorder" = c(1:6),
+               "Sleep Disturbances" = c(13:16),
+               "PTSD" = c(7:12))
 
-plot_all<-plot(network_all, 
-               labels=names, 
-               layout="spring", 
-               vsize=8, 
-               cut=0, 
-               border.width=.7, 
-               border.color="black", 
-               groups=groupsint, 
-               color=c("lightcoral", "slategray2", "darkseagreen"),
-               label.color = "black", 
-               legend.cex=.3,
-               negDashed = T)
-title(paste0("Full Sample (n = ", nrow(data%>%dplyr::select(-PTSDyn)), ")"))
+# Define column names and item descriptions
+names2 <- c("Binge", "Purge", "Fast", "Restrict", "Fear Weight", "Feel Fat", 
+            "Intrusive", "Avoid Thinking", "Avoid Activities", "Unable Pos", 
+            "Alert", "Startle", "Sleep Pattern", "Fatigue", "Nightmare", 
+            "Sleep Trouble")
 
-
-plot_allv2 <- plot(network_all, 
-                 groups=groupsint, 
-                 labels=names,
-                 layout="spring", 
-                 theme="colorblind", 
-                 palette="colorblind", 
-                
-                  # Output Arguments
-                 width = 7 * 1.4, 
-                 height = 7,
-                
-                 # Graphical Arguments 
-                 vsize = 7, # size of nodes 
-                 border.width=0.1, # controls width of border
-            
-                 # Node Labels 
-                 label.cex = 0.9, 
-                 label.color = "black",
-                 label.prop = 1, # proportion of the width of the node that the label scales
-                 negDashed = T, 
-            
-                 # Legend 
-                 legend=TRUE,
-                 legend.cex=0.5, # scalar of the legend 
-)
-title(paste0("Full Sample (n = ", nrow(data%>%dplyr::select(-PTSDyn)), ")"))
-
-
-
-colnames(data)
-names2 = c("Binge", "Purge", "Fast", "Restrict", "Fear Weight", "Feel Fat", 
-          "Intrusive", "Avoid Thinking", "Avoid Activities", "Unable Pos", "Alert", "Startle", 
-          "Sleep Pattern", "Fatigue", "Nightmare", "Sleep Trouble")
-items = c(
+items <- c(
   "How many times did you have a sense of having lost control over your eating?", 
   "How many times have you made yourself sick (vomit) as a means of controlling your shape/weight?",
   "Have you gone for long periods of time (8 waking hours or more) without eating anything at all in order to influence your shape or weight?", 
@@ -180,216 +140,264 @@ items = c(
   "Changes in sleep pattern.", 
   "Tiredness or fatigue.", 
   "Repeated, disturbing dreams of a stressful experience from the past?", 
-  "Trouble falling or staying alseep?"
+  "Trouble falling or staying asleep?"
 )
 
+# Plot 1
+plot_all <- plot(network_all, 
+                 labels = names, 
+                 layout = "spring", 
+                 vsize = 8, 
+                 cut = 0, 
+                 border.width = .7, 
+                 border.color = "black", 
+                 groups = groupsint, 
+                 color = c("lightcoral", "slategray2", "darkseagreen"),
+                 label.color = "black", 
+                 legend.cex = .3,
+                 negDashed = TRUE)
+title(paste0("Full Sample (n = ", nrow(data %>% dplyr::select(-PTSDyn)), ")"))
 
+# Plot 2
+plot_allv2 <- plot(network_all, 
+                   groups = groupsint, 
+                   labels = names,
+                   layout = "spring", 
+                   theme = "colorblind", 
+                   palette = "colorblind", 
+                   
+                   # Output Arguments
+                   width = 7 * 1.4, 
+                   height = 7,
+                   
+                   # Graphical Arguments 
+                   vsize = 7, # size of nodes 
+                   border.width = 0.1, # controls width of border
+                   
+                   # Node Labels 
+                   label.cex = 0.9, 
+                   label.color = "black",
+                   label.prop = 1, # proportion of the width of the node that the label scales
+                   negDashed = TRUE, 
+                   
+                   # Legend 
+                   legend = TRUE,
+                   legend.cex = 0.5 # scalar of the legend 
+)
+title(paste0("Full Sample (n = ", nrow(data %>% dplyr::select(-PTSDyn)), ")"))
+
+# Plot 3
 plot_allv3 <- plot(network_all, 
-                 groups=groupsint, 
-                 labels=names2,
-                 layout="spring", 
-                 theme="colorblind", 
-                 palette="colorblind", 
-                 
-                 # Output Arguments
-                 width = 7 * 1.4, 
-                 height = 7,
-                 
-                 # Graphical Arguments 
-                 vsize = 7, # size of nodes 
-                 border.width=0.1, # controls width of border
-                 
-                 # Node Labels 
-                 label.cex = 0.9, 
-                 label.color = "black",
-                 label.prop = 1, # proportion of the width of the node that the label scales
-                 negDashed = T, 
-                 
-                 # Legend 
-                 legend=TRUE,
-                 legend.cex=0.5, # scalar of the legend 
+                   groups = groupsint, 
+                   labels = names2,
+                   layout = "spring", 
+                   theme = "colorblind", 
+                   palette = "colorblind", 
+                   
+                   # Output Arguments
+                   width = 7 * 1.4, 
+                   height = 7,
+                   
+                   # Graphical Arguments 
+                   vsize = 7, # size of nodes 
+                   border.width = 0.1, # controls width of border
+                   
+                   # Node Labels 
+                   label.cex = 0.9, 
+                   label.color = "black",
+                   label.prop = 1, # proportion of the width of the node that the label scales
+                   negDashed = TRUE, 
+                   
+                   # Legend 
+                   legend = TRUE,
+                   legend.cex = 0.5 # scalar of the legend 
 )
-title(paste0("Full Sample (n = ", nrow(data%>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("Full Sample (n = ", nrow(data %>% dplyr::select(-PTSDyn)), ")"))
 
-
-
-plot_allv4<-plot(network_all, 
-                 groups=groupsint, 
-                 labels=names2,
-                 layout="spring", 
-                 theme="colorblind", 
-                 palette="colorblind", 
-                 
-                 # Output Arguments
-                 width = 7 * 1.4, 
-                 height = 7 * 2.4,
-                 
-                 # Graphical Arguments 
-                 vsize = 7, # size of nodes 
-                 border.width=0.1, # controls width of border
-                 
-                 # Node Labels 
-                 label.cex = 0.9, 
-                 label.color = "black",
-                 label.prop = 1, # proportion of the width of the node that the label scales
-                 negDashed = T, 
-                 
-                 # Legend 
-                 legend=TRUE,
-                 legend.cex=0.4, # scalar of the legend 
-                 legend.mode="style1", 
-                 nodeNames=items, 
-                 GLratio = 2.5, # relative size of graph compared to the layout
-                 layoutScale = c(0.7, 0.9), 
-                 layoutOffset=c(-0.4,0) 
+# Plot 4
+plot_allv4 <- plot(network_all, 
+                   groups = groupsint, 
+                   labels = names2,
+                   layout = "spring", 
+                   theme = "colorblind", 
+                   palette = "colorblind", 
+                   
+                   # Output Arguments
+                   width = 7 * 1.4, 
+                   height = 7 * 2.4,
+                   
+                   # Graphical Arguments 
+                   vsize = 7, # size of nodes 
+                   border.width = 0.1, # controls width of border
+                   
+                   # Node Labels 
+                   label.cex = 0.9, 
+                   label.color = "black",
+                   label.prop = 1, # proportion of the width of the node that the label scales
+                   negDashed = TRUE, 
+                   
+                   # Legend 
+                   legend = TRUE,
+                   legend.cex = 0.4, # scalar of the legend 
+                   legend.mode = "style1", 
+                   nodeNames = items, 
+                   GLratio = 2.5, # relative size of graph compared to the layout
+                   layoutScale = c(0.7, 0.9), 
+                   layoutOffset = c(-0.4, 0) 
 )
-title(paste0("Full Sample (n = ", nrow(data%>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("Full Sample (n = ", nrow(data %>% dplyr::select(-PTSDyn)), ")"))
 
-
-
-
-#Centrality graph
+# Centrality graph
 centralityPlot(network_all, scale="raw")
 
 centralityPlot(network_all, scale="raw", labels=names2)
 centralityPlot(network_all, scale="raw", labels=names2, orderBy="Strength")
 
-# check that you get the same thing as above 
+# Check that you get the same thing as above 
 centralityPlot(plot_all, scale="raw", orderBy="Strength", labels=names2)
 centralityPlot(plot_all, scale="z-scores", orderBy="Strength", labels=names2)
 
-
-#Centrality Table
+# Centrality Table
 cen_tab = centralityTable(network_all, standardized=FALSE) # raw values
 cen_tab_strength = subset(cen_tab, measure == "Strength")
 cen_tab_strength
 
-#Constructing a partial correlation matrix
+# Constructing a partial correlation matrix
 All_pcormat <-getWmat(network_all)
-write.csv(All_pcormat, "All_pcormat.csv")
+write.csv(All_pcormat, "Output/All_pcormat.csv")
 
-colnames(data)
-bridge(network_all$graph, communities=c('1','1','1','1','1','1','2','2','2',
-                            '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
+bridge(network_all$graph, 
+       communities = c('1','1','1','1','1','1',
+                       '2','2','2','2','2','2',
+                       '3','3','3','3'), 
+       useCommunities = "all", 
+       directed = NULL, 
+       nodes = NULL)
 
-# check same thing
-bridge(plot_allv3, communities=c('1','1','1','1','1','1','2','2','2',
-                                        '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
+# Double check
+bridge(plot_allv3, communities = c('1','1','1','1','1','1',
+                                   '2','2','2', '2','2','2',
+                                   '3','3','3','3'), 
+       useCommunities = "all", 
+       directed = NULL, 
+       nodes = NULL)
 
+# Create bridge graph 
+intbridge <- bridge(network_all$graph, 
+                    communities=c('1','1','1','1','1','1',
+                                  '2','2','2','2','2','2',
+                                  '3','3','3','3'), 
+                    useCommunities = "all",
+                    directed = NULL,
+                    nodes = NULL)
 
+# Double check
+intbridge2 <- bridge(plot_allv3, 
+                     communities=c('1','1','1','1','1','1',
+                                   '2','2','2', '2','2','2',
+                                   '3','3','3','3'), 
+                     useCommunities = "all", 
+                     directed = NULL, 
+                     nodes = NULL)
 
-# create bridge graph 
-intbridge <- bridge(network_all$graph, communities=c('1','1','1','1','1','1','2','2','2',
-                                         '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
-intbridge2 <- bridge(plot_allv3, communities=c('1','1','1','1','1','1','2','2','2',
-                                                     '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
+plot(intbridge2, 
+     order = "value", 
+     standardized = TRUE, 
+     include = "Bridge Expected Influence (1-step)")
 
-
-### bridge - PTSD: 
-intbridge_ptsd2
-intbridge_ptsd
-
-### bridge - ED: 
-intbridge_ed2
-intbridge_ed
-
-### bridge: all 
-intbridge
-intbridge2
-
-#save bridge graph as pdf
-pdf("All_bridge.pdf", width = 15)
+# Save bridge graph as pdf
+pdf("Output/All_bridge.pdf", width = 15)
 plot(intbridge)
 plot(intbridge2)
 dev.off()
 
-plot(intbridge2, 
-     order="value", 
-     standardized=TRUE, 
-     include = "Bridge Expected Influence (1-step)")
+# Check network stability
+All_boot <- bootnet(network_all,
+                    boots = 1000, 
+                    nCores = 4)
 
-#Stability analysis#
-All_boot <- bootnet(network_all, boots=1000,nCores=4)
-All_boot_case <- bootnet(network_all, boots=1000,nCores=4, type="case")
+All_boot_case <- bootnet(network_all,
+                         boots = 1000, 
+                         nCores = 4, 
+                         type = "case")
 
-save(All_boot, file = "All_boot.Rdata")
-save(All_boot_case, file = "All_boot_case.Rdata")
+save(All_boot, file = "Output/All_boot.Rdata")
+save(All_boot_case, file = "Output/All_boot_case.Rdata")
 
-
-
-
-##If closed R after saving bootnet files you can reload them below#
-load("All_boot.Rdata")
-load("All_boot_case.Rdata")
-####################
-
-### Plot edge weight CI
-pdf("Stability_all.pdf")
+# Plot edge weight CI
+pdf("Output/Stability_all.pdf")
 plot(All_boot, labels = FALSE, order = "sample") 
 plot(All_boot, labels = TRUE, order = "sample") 
 dev.off()
 
-### Edge weights diff test
-pdf("Edge_difftest_all.pdf")
+# Edge weights diff test
+pdf("Output/Edge_difftest_all.pdf")
 plot(All_boot, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
 dev.off()
 
-### Plot centrality stability
-pdf("Stability_all.pdf") 
+# Plot centrality stability
+pdf("Output/Stability_all.pdf") 
 plot(All_boot_case)
 dev.off()
 
-### Centrality stability coefficient
+# Centrality stability coefficient
 corStability(All_boot_case)
 
-### Centrality diff test
-pdf("Centrality_difftest_all.pdf")
+# Centrality diff test
+pdf("Output/Centrality_difftest_all.pdf")
 plot(All_boot, "strength", order="sample", labels=TRUE, names=names) 
 dev.off()
 
+caseDroppingBoot <- bootnet(network_all, 
+                            boots = 1000, 
+                            type = "case", 
+                            statistics = c("bridgeStrength", "bridgeCloseness", "bridgeBetweenness", "bridgeExpectedInfluence"), 
+                            communities = groupsint)
 
-
-
-
-
-caseDroppingBoot <- bootnet(network_all, boots=1000, type="case", 
-                            statistics=c("bridgeStrength", "bridgeCloseness", "bridgeBetweenness", "bridgeExpectedInfluence"), 
-                            communities=groupsint)
 corStability(caseDroppingBoot)
 
 plot(caseDroppingBoot, statistics="bridgeExpectedInfluence")
 
 plot(caseDroppingBoot, statistics="bridgeStrength")
 
-nonParametricBoot <- bootnet(network_all, boots=1000, type="nonparametric", statistics=c("bridgeStrength", "bridgeExpectedInfluence"), 
-                             communities=groupsint)
+(nonParametricBoot <- bootnet(network_all, 
+                             boots = 1000, 
+                             type = "nonparametric", 
+                             statistics = c("bridgeStrength", "bridgeExpectedInfluence"), 
+                             communities = groupsint))
 table(nonParametricBoot$bootTable$type)
-nonParametricBoot
-pdf("BEIdifftest_all.pdf")
-plot(nonParametricBoot, statistics="bridgeExpectedInfluence", plot="difference")
-dev.off()
-pdf("BSdifftest_all.pdf")
-plot(nonParametricBoot, statistics="bridgeStrength", plot="difference")
+
+pdf("Output/BEIdifftest_all.pdf")
+plot(nonParametricBoot, statistics = "bridgeExpectedInfluence", plot = "difference")
 dev.off()
 
+pdf("Output/BSdifftest_all.pdf")
+plot(nonParametricBoot, statistics = "bridgeStrength", plot = "difference")
+dev.off()
 
 
+### PTSD AND ED NETWORK ###
 
-
-
-
-
-
-
-
-#PTSD AND ED NETWORK
-n=16 #number of nodes
+# Select participants with a 1 for PTSDyn variable
+network_ptsd <- estimateNetwork(data %>% filter(PTSDyn == 1) %>%dplyr::select(-PTSDyn), 
+                                default = "EBICglasso", 
+                                corMethod = "cor", 
+                                corArgs = list(method = "spearman", use = "pairwise.complete.obs")) # Spearman correlation
+n = 16 #number of nodes
 colnames(data)
-groupsint=list("Eating Disorder"=c(1:6),"Sleep Disturbances"=c(13:16),"PTSD"=c(7:12))
-names2 = c("Binge", "Purge", "Fast", "Restrict", "Fear Fat", "Feel Fat", 
-           "Intrusive", "Avoid Thinking", "Avoid Activities", "Unable Pos", "Alert", "Startle", 
-           "Sleep Pattern", "Fatigue", "Nightmare", "Sleep Trouble")
-items = c(
+
+# Symptom clusters
+groupsint = list("Eating Disorder" = c(1:6),
+                 "Sleep Disturbances" = c(13:16),
+                 "PTSD" = c(7:12))
+
+# Define column names and item descriptions
+names2 <- c("Binge", "Purge", "Fast", "Restrict", "Fear Weight", "Feel Fat", 
+            "Intrusive", "Avoid Thinking", "Avoid Activities", "Unable Pos", 
+            "Alert", "Startle", "Sleep Pattern", "Fatigue", "Nightmare", 
+            "Sleep Trouble")
+
+items <- c(
   "How many times did you have a sense of having lost control over your eating?", 
   "How many times have you made yourself sick (vomit) as a means of controlling your shape/weight?",
   "Have you gone for long periods of time (8 waking hours or more) without eating anything at all in order to influence your shape or weight?", 
@@ -405,261 +413,272 @@ items = c(
   "Changes in sleep pattern.", 
   "Tiredness or fatigue.", 
   "Repeated, disturbing dreams of a stressful experience from the past?", 
-  "Trouble falling or staying alseep?"
+  "Trouble falling or staying asleep?"
 )
-
-
-
-
-
-
-#Select participants with a 0 for PTSDyn variable
-network_ptsd <- estimateNetwork(data %>% filter(PTSDyn==1) %>%dplyr::select(-PTSDyn), 
-                                default = "EBICglasso", 
-                                corMethod = "cor", 
-                                corArgs = list(method = "spearman", use = "pairwise.complete.obs")) #use Spearman correlation
 
 summary(network_ptsd)
 network_ptsd$graph
 plot(network_ptsd)
 
 
-plot_ptsd<-plot(network_ptsd, 
-               labels=names, 
-               layout="spring", 
-               vsize=8, 
-               cut=0, 
-               border.width=.7, 
-               border.color="black", 
-               groups=groupsint, 
-               color=c("lightcoral", "slategray2", "darkseagreen"),
-               label.color = "black", 
-               legend.cex=.3,
-               negDashed = T)
-title(paste0("ED and PTSD (n = ", nrow(data %>% filter(PTSDyn==1) %>%dplyr::select(-PTSDyn)), ")"))
+# Plot 1 
+plot_ptsd <- plot(network_ptsd, 
+                  labels = names, 
+                  layout = "spring", 
+                  vsize = 8, 
+                  cut = 0, 
+                  border.width = .7, 
+                  border.color = "black", 
+                  groups = groupsint, 
+                  color = c("lightcoral", "slategray2", "darkseagreen"),
+                  label.color = "black", 
+                  legend.cex = .3,
+                  negDashed = TRUE)
+title(paste0("ED and PTSD (n = ", nrow(data %>% filter(PTSDyn == 1) %>% dplyr::select(-PTSDyn)), ")"))
 
-
-plot_ptsdv2<-plot(network_ptsd, 
-                 groups=groupsint, 
-                 labels=names2,
-                 layout="spring", 
-                 theme="colorblind", 
-                 palette="colorblind", 
-                 
-                 # Output Arguments
-                 width = 7 * 1.4, 
-                 height = 7,
-                 
-                 # Graphical Arguments 
-                 vsize = 7, # size of nodes 
-                 border.width=0.1, # controls width of border
-                 
-                 # Node Labels 
-                 label.cex = 0.9, 
-                 label.color = "black",
-                 label.prop = 1, # proportion of the width of the node that the label scales
-                 negDashed = T, 
-                 
-                 # Legend 
-                 legend=TRUE,
-                 legend.cex=0.5, # scalar of the legend 
+# Plot 2
+plot_ptsdv2 <- plot(network_ptsd, 
+                    groups = groupsint, 
+                    labels = names2,
+                    layout = "spring", 
+                    theme = "colorblind", 
+                    palette = "colorblind", 
+                    
+                    # Output Arguments
+                    width = 7 * 1.4, 
+                    height = 7,
+                    
+                    # Graphical Arguments 
+                    vsize = 7, # size of nodes 
+                    border.width = 0.1, # controls width of border
+                    
+                    # Node Labels 
+                    label.cex = 0.9, 
+                    label.color = "black",
+                    label.prop = 1, # proportion of the width of the node that the label scales
+                    negDashed = TRUE, 
+                    
+                    # Legend 
+                    legend = TRUE,
+                    legend.cex = 0.5 # scalar of the legend 
 )
-title(paste0("ED and PTSD (n = ", nrow(data %>% filter(PTSDyn==1) %>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("ED and PTSD (n = ", nrow(data %>% filter(PTSDyn == 1) %>% dplyr::select(-PTSDyn)), ")"))
 
-
-plot_ptsdv3<-plot(network_ptsd, 
-                 groups=groupsint, 
-                 labels=names2,
-                 layout="spring", 
-                 theme="colorblind", 
-                 palette="colorblind", 
-                 
-                 # Output Arguments
-                 width = 7 * 1.4, 
-                 height = 7 * 2.4,
-                 
-                 # Graphical Arguments 
-                 vsize = 7, # size of nodes 
-                 border.width=0.1, # controls width of border
-                 
-                 # Node Labels 
-                 label.cex = 0.9, 
-                 label.color = "black",
-                 label.prop = 1, # proportion of the width of the node that the label scales
-                 negDashed = T, 
-                 
-                 # Legend 
-                 legend=TRUE,
-                 legend.cex=0.35, # scalar of the legend 
-                 legend.mode="style1", 
-                 nodeNames=items, 
-                 GLratio = 2.5, # relative size of graph compared to the layout
-                 layoutScale = c(0.8, 0.9), 
-                 layoutOffset=c(-0.35,0) 
+# Plot 3
+plot_ptsdv3 <- plot(network_ptsd, 
+                    groups = groupsint, 
+                    labels = names2,
+                    layout = "spring", 
+                    theme = "colorblind", 
+                    palette = "colorblind", 
+                    
+                    # Output Arguments
+                    width = 7 * 1.4, 
+                    height = 7 * 2.4,
+                    
+                    # Graphical Arguments 
+                    vsize = 7, # size of nodes 
+                    border.width = 0.1, # controls width of border
+                    
+                    # Node Labels 
+                    label.cex = 0.9, 
+                    label.color = "black",
+                    label.prop = 1, # proportion of the width of the node that the label scales
+                    negDashed = TRUE, 
+                    
+                    # Legend 
+                    legend = TRUE,
+                    legend.cex = 0.35, # scalar of the legend 
+                    legend.mode = "style1", 
+                    nodeNames = items, 
+                    GLratio = 2.5, # relative size of graph compared to the layout
+                    layoutScale = c(0.8, 0.9), 
+                    layoutOffset = c(-0.35, 0) 
 )
-title(paste0("ED and PTSD (n = ", nrow(data %>% filter(PTSDyn==1) %>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("ED and PTSD (n = ", nrow(data %>% filter(PTSDyn == 1) %>% dplyr::select(-PTSDyn)), ")"))
 
 
-
-
-
-
-#Centrality graph
+# Centrality graph
 centralityPlot(network_ptsd, scale="raw")
 
 centralityPlot(network_ptsd, scale="raw", labels=names2)
 centralityPlot(network_ptsd, scale="raw", labels=names2, orderBy="Strength")
 
-# check that you get the same thing as above 
+# Check that you get the same thing as above 
 centralityPlot(plot_ptsd, scale="raw", orderBy="Strength", labels=names2)
 centralityPlot(plot_ptsd, scale="z-scores", orderBy="Strength", labels=names2)
 
 
-#Centrality Table
+# Centrality Table
 cen_tab_ptsd = centralityTable(network_ptsd, standardized=FALSE) # raw values
 cen_tab_ptsd_strength = subset(cen_tab_ptsd, measure == "Strength")
 cen_tab_ptsd_strength
 
-#Constructing a partial correlation matrix
+# Constructing a partial correlation matrix
 PTSD_pcormat <-getWmat(network_ptsd)
 write.csv(PTSD_pcormat, "PTSD_pcormat.csv")
 
 colnames(data)
-bridge(network_ptsd$graph, communities=c('1','1','1','1','1','1','2','2','2',
-                                        '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
+bridge(network_ptsd$graph, 
+       communities = c('1','1','1','1','1','1',
+                       '2','2','2', '2','2','2',
+                       '3','3','3','3'),
+       useCommunities = "all", 
+       directed = NULL, 
+       nodes = NULL)
 
-bridge(plot_ptsdv2, communities=c('1','1','1','1','1','1','2','2','2',
-                                 '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
-
+bridge(plot_ptsdv2, 
+       communities = c('1','1','1','1','1','1',
+                       '2','2','2', '2','2','2',
+                       '3','3','3','3'),
+       useCommunities = "all", 
+       directed = NULL, 
+       nodes = NULL)
 
 # Create bridge graph
-intbridge_ptsd <- bridge(network_ptsd$graph, communities=c('1','1','1','1','1','1','2','2','2',
-                                                     '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
-intbridge_ptsd2 <- bridge(plot_ptsdv2, communities=c('1','1','1','1','1','1','2','2','2',
-                                              '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
+intbridge_ptsd <- bridge(network_ptsd$graph, 
+                         communities = c('1','1','1','1','1','1',
+                                         '2','2','2','2','2','2',
+                                         '3','3','3','3'),
+                         useCommunities = "all", 
+                         directed = NULL, 
+                         nodes = NULL)
 
-intbridge_ptsd2
-#save bridge graph as pdf
-pdf("PTSD_bridge.pdf", width = 15)
+(intbridge_ptsd2 <- bridge(plot_ptsdv2, 
+                          communities = c('1','1','1','1','1','1',
+                                          '2','2','2','2','2','2',
+                                       '3','3','3','3'),
+                          useCommunities = "all", 
+                          directed = NULL,  
+                          nodes = NULL))
+
+plot(intbridge_ptsd2, 
+     order = "value", 
+     standardized = FALSE, 
+     include = "Bridge Expected Influence (1-step)")
+
+# Save bridge graph as pdf
+pdf("Output/PTSD_bridge.pdf", width = 15)
 plot(intbridge_ptsd)
 plot(intbridge_ptsd2)
 dev.off()
-intbridge_ptsd2
-intbridge_ptsd
-plot(intbridge_ptsd2, 
-     order="value", 
-     standardized=FALSE, 
-     include = "Bridge Expected Influence (1-step)")
 
+# Network stability
+PTSD_boot <- bootnet(network_ptsd, 
+                     boots = 1000,
+                     nCores = 4)
 
-#Stability analysis#
-PTSD_boot <- bootnet(network_ptsd, boots=1000,nCores=4)
-PTSD_boot_case <- bootnet(network_ptsd, boots=1000,nCores=4, type="case")
+PTSD_boot_case <- bootnet(network_ptsd, 
+                          boots = 1000,
+                          nCores = 4, 
+                          type = "case")
 
-save(PTSD_boot, file = "PTSD_boot.Rdata")
-save(PTSD_boot_case, file = "PTSD_boot_case.Rdata")
+save(PTSD_boot, file = "Output/PTSD_boot.Rdata")
+save(PTSD_boot_case, file = "Output/PTSD_boot_case.Rdata")
 
-
-##If closed R after saving bootnet files you can reload them below#
-load("PTSD_boot.Rdata")
-load("PTSD_boot_case.Rdata")
-####################
-
-### Plot edge weight CI
-pdf("Stability_ptsd.pdf")
+# Plot edge weight CI
+pdf("Output/Stability_ptsd.pdf")
 plot(PTSD_boot, labels = FALSE, order = "sample") 
 plot(PTSD_boot, labels = TRUE, order = "sample") 
 dev.off()
 
-### Edge weights diff test
-pdf("Edge_difftest_ptsd.pdf")
-plot(PTSD_boot, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
+# Edge weights diff test
+pdf("Output/Edge_difftest_ptsd.pdf")
+plot(PTSD_boot, 
+     "edge", 
+     plot = "difference", 
+     onlyNonZero = TRUE, 
+     order = "sample")
 dev.off()
 
-### Plot centrality stability
-pdf("Stability_ptsd.pdf") 
+# Plot centrality stability
+pdf("Output/Stability_ptsd.pdf") 
 plot(PTSD_boot_case)
 dev.off()
 
-### Centrality stability coefficient
+# Centrality stability coefficient
 corStability(PTSD_boot_case)
 
-### Centrality diff test
-pdf("Centrality_difftest_ptsd.pdf")
-plot(PTSD_boot, "strength", order="sample", labels=TRUE, names=names2) 
+# Centrality diff test
+pdf("Output/Centrality_difftest_ptsd.pdf")
+plot(PTSD_boot, 
+     "strength",
+     order = "sample", 
+     labels = TRUE,
+     names = names2) 
 dev.off()
 
+# Case dropping bootstrap for PTSD network
+caseDroppingBoot_ptsd <- bootnet(network_ptsd, 
+                                 boots = 1000, 
+                                 type = "case", 
+                                 statistics = c("bridgeStrength", "bridgeCloseness", "bridgeBetweenness", "bridgeExpectedInfluence"), 
+                                 communities = groupsint)
 
-
-
-caseDroppingBoot_ptsd <- bootnet(network_ptsd, boots=1000, type="case", 
-                            statistics=c("bridgeStrength", "bridgeCloseness", "bridgeBetweenness", "bridgeExpectedInfluence"), 
-                            communities=groupsint)
+# Correlation stability for case dropping bootstrap
 corStability(caseDroppingBoot_ptsd)
 
-plot(caseDroppingBoot_ptsd, statistics="bridgeExpectedInfluence")
+# Plot bridgeExpectedInfluence for case dropping bootstrap
+plot(caseDroppingBoot_ptsd, statistics = "bridgeExpectedInfluence")
 
-plot(caseDroppingBoot_ptsd, statistics="bridgeStrength")
+# Plot bridgeStrength for case dropping bootstrap
+plot(caseDroppingBoot_ptsd, statistics = "bridgeStrength")
 
+# Non-parametric bootstrap for PTSD network
 nonParametricBoot_ptsd <- bootnet(network_ptsd, 
-                                  boots=1000, 
-                                  type="nonparametric", 
-                                  statistics=c("bridgeStrength", "bridgeExpectedInfluence"), 
-                                  communities=groupsint)
+                                  boots = 1000, 
+                                  type = "nonparametric", 
+                                  statistics = c("bridgeStrength", "bridgeExpectedInfluence"), 
+                                  communities = groupsint)
 
 
-pdf("BEIdifftest_ptsd.pdf")
-plot(nonParametricBoot_ptsd, statistics="bridgeExpectedInfluence", plot="difference")
+# Save bridgeExpectedInfluence difference plot
+pdf("Output/BEIdifftest_ptsd.pdf")
+plot(nonParametricBoot_ptsd, statistics = "bridgeExpectedInfluence", plot = "difference")
 dev.off()
 
-pdf("BSdifftest_ptsd.pdf")
-plot(nonParametricBoot_ptsd, statistics="bridgeStrength", plot="difference")
+# Save bridgeStrength difference plot
+pdf("Output/BSdifftest_ptsd.pdf")
+plot(nonParametricBoot_ptsd, statistics = "bridgeStrength", plot = "difference")
 dev.off()
 
+### ED Only network ###
 
-
-
-
-
-
-
-
-
-
-#ED Only network 
-
-#dplyr::select participants with a 0 for PTSDyn variable
-network_ed <- estimateNetwork(data %>% filter(PTSDyn==0) %>%dplyr::select(-PTSDyn), 
+# Estimate Network for ED group without PTSD
+network_ed <- estimateNetwork(data %>% filter(PTSDyn == 0) %>% dplyr::select(-PTSDyn), 
                               default = "EBICglasso", 
                               corMethod = "cor", 
-                              corArgs = list(method = "spearman", use = "pairwise.complete.obs")) #use Spearman correlation
+                              corArgs = list(method = "spearman", use = "pairwise.complete.obs")) # use Spearman correlation
 
+# Summary 
 summary(network_ed)
 network_ed$graph
+
+# Plot
 plot(network_ed)
 
-
-plot_ed <-plot(network_ed, 
-                labels=names, 
-                layout="spring", 
-                vsize=8, 
-                cut=0, 
-                border.width=.7, 
-                border.color="black", 
-                groups=groupsint, 
-                color=c("lightcoral", "slategray2", "darkseagreen"),
+# Plot 1
+plot_ed <- plot(network_ed, 
+                labels = names, 
+                layout = "spring", 
+                vsize = 8, 
+                cut = 0, 
+                border.width = .7, 
+                border.color = "black", 
+                groups = groupsint, 
+                color = c("lightcoral", "slategray2", "darkseagreen"),
                 label.color = "black", 
-                legend.cex=.5,
-                negDashed = T)
-title(paste0("ED_Only (n = ", nrow(data %>% filter(PTSDyn==0) %>%dplyr::select(-PTSDyn)), ")"))
+                legend.cex = .5,
+                negDashed = TRUE)
+title(paste0("ED_Only (n = ", nrow(data %>% filter(PTSDyn == 0) %>% dplyr::select(-PTSDyn)), ")"))
 
-
-plot_edv2<-plot(network_ed, 
-                  groups=groupsint, 
-                  labels=names2,
-                  layout="spring", 
-                  theme="colorblind", 
-                  palette="colorblind", 
+# Plot 2
+plot_edv2 <- plot(network_ed, 
+                  groups = groupsint, 
+                  labels = names2,
+                  layout = "spring", 
+                  theme = "colorblind", 
+                  palette = "colorblind", 
                   
                   # Output Arguments
                   width = 7 * 1.4, 
@@ -667,27 +686,27 @@ plot_edv2<-plot(network_ed,
                   
                   # Graphical Arguments 
                   vsize = 7, # size of nodes 
-                  border.width=0.1, # controls width of border
+                  border.width = 0.1, # controls width of border
                   
                   # Node Labels 
                   label.cex = 0.9, 
                   label.color = "black",
                   label.prop = 1, # proportion of the width of the node that the label scales
-                  negDashed = T, 
+                  negDashed = TRUE, 
                   
                   # Legend 
-                  legend=TRUE,
-                  legend.cex=0.5, # scalar of the legend 
+                  legend = TRUE,
+                  legend.cex = 0.5 # scalar of the legend 
 )
-title(paste0("ED_Only (n = ", nrow(data %>% filter(PTSDyn==0) %>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("ED_Only (n = ", nrow(data %>% filter(PTSDyn == 0) %>% dplyr::select(-PTSDyn)), ")"))
 
-
-plot_edv3<-plot(network_ed, 
-                  groups=groupsint, 
-                  labels=names2,
-                  layout="spring", 
-                  theme="colorblind", 
-                  palette="colorblind", 
+# Plot 3
+plot_edv3 <- plot(network_ed, 
+                  groups = groupsint, 
+                  labels = names2,
+                  layout = "spring", 
+                  theme = "colorblind", 
+                  palette = "colorblind", 
                   
                   # Output Arguments
                   width = 7 * 1.4, 
@@ -695,248 +714,158 @@ plot_edv3<-plot(network_ed,
                   
                   # Graphical Arguments 
                   vsize = 7, # size of nodes 
-                  border.width=0.1, # controls width of border
+                  border.width = 0.1, # controls width of border
                   
                   # Node Labels 
                   label.cex = 0.9, 
                   label.color = "black",
                   label.prop = 1, # proportion of the width of the node that the label scales
-                  negDashed = T, 
+                  negDashed = TRUE, 
                   
                   # Legend 
-                  legend=TRUE,
-                  legend.cex=0.38, # scalar of the legend 
-                  legend.mode="style1", 
-                  nodeNames=items, 
+                  legend = TRUE,
+                  legend.cex = 0.38, # scalar of the legend 
+                  legend.mode = "style1", 
+                  nodeNames = items, 
                   GLratio = 2.5, # relative size of graph compared to the layout
                   layoutScale = c(0.75, 0.9), 
-                  layoutOffset=c(-0.4,0) 
+                  layoutOffset = c(-0.4, 0) 
 )
-title(paste0("ED_Only (n = ", nrow(data %>% filter(PTSDyn==0) %>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("ED_Only (n = ", nrow(data %>% filter(PTSDyn == 0) %>% dplyr::select(-PTSDyn)), ")"))
 
+# Centrality plots
+centralityPlot(network_ed, scale = "raw")
+centralityPlot(network_ed, scale = "raw", labels = names2)
+centralityPlot(network_ed, scale = "raw", labels = names2, orderBy = "Strength")
 
+# Check centrality plots with plot_ed
+centralityPlot(plot_ed, scale = "raw", orderBy = "Strength", labels = names2)
+centralityPlot(plot_ed, scale = "z-scores", orderBy = "Strength", labels = names2)
 
-#Centrality graph
-centralityPlot(network_ed, scale="raw")
+# Centrality table
+cen_tab_ed <- centralityTable(network_ed, standardized = FALSE) # raw values
+cen_tab_ed_strength <- subset(cen_tab_ed, measure == "Strength")
+print(cen_tab_ed_strength)
 
-centralityPlot(network_ed, scale="raw", labels=names2)
-centralityPlot(network_ed, scale="raw", labels=names2, orderBy="Strength")
-
-# check that you get the same thing as above 
-centralityPlot(plot_ed, scale="raw", orderBy="Strength", labels=names2)
-centralityPlot(plot_ed, scale="z-scores", orderBy="Strength", labels=names2)
-
-
-#Centrality Table
-cen_tab_ed = centralityTable(network_ed, standardized=FALSE) # raw values
-cen_tab_ed_strength = subset(cen_tab_ed, measure == "Strength")
-cen_tab_ed_strength
-
-#Constructing a partial correlation matrix
-ED_pcormat <-getWmat(network_ed)
+# Constructing a partial correlation matrix
+ED_pcormat <- getWmat(network_ed)
 write.csv(ED_pcormat, "ED_pcormat.csv")
 
-colnames(data)
-bridge(network_ed$graph, communities=c('1','1','1','1','1','1','2','2','2',
-                                         '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
+# Calculate bridge centrality measures
+bridge(network_ed$graph,
+       communities = c('1','1','1','1','1','1',
+                       '2','2','2','2','2','2',
+                       '3','3','3','3'), 
+       useCommunities = "all", 
+       directed = NULL, 
+       nodes = NULL)
 
-bridge(plot_edv2, communities=c('1','1','1','1','1','1','2','2','2',
-                                  '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
-
+bridge(plot_edv2, 
+       communities = c('1','1','1','1','1','1',
+                       '2','2','2','2','2','2',
+                       '3','3','3','3'), 
+       useCommunities = "all",
+       directed = NULL,
+       nodes = NULL)
 
 # Create bridge graph
-intbridge_ed <- bridge(network_ed$graph, communities=c('1','1','1','1','1','1','2','2','2',
-                                                           '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
-intbridge_ed2 <- bridge(plot_edv2, communities=c('1','1','1','1','1','1','2','2','2',
-                                                     '2','2','2','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
-intbridge # 2 ste 1.15
-intbridge_ptsd # 2st .60
-intbridge_ed2 # 2 st #41
-#save bridge graph as pdf
-pdf("ED_bridge.pdf", width = 15)
+intbridge_ed <- bridge(network_ed$graph, communities = c('1','1','1','1','1','1',
+                                                         '2','2','2', '2','2','2',
+                                                         '3','3','3','3'), 
+                       useCommunities = "all",
+                       directed = NULL, 
+                       nodes = NULL)
+
+intbridge_ed2 <- bridge(plot_edv2, communities = c('1','1','1','1','1','1',
+                                                   '2','2','2','2','2','2',
+                                                   '3','3','3','3'), 
+                        useCommunities = "all", 
+                        directed = NULL, 
+                        nodes = NULL)
+
+# Compare bridge centrality results
+print(intbridge_ed)
+print(intbridge_ed2)
+
+# Save bridge graph 
+pdf("Ouput/ED_bridge.pdf", width = 15)
 plot(intbridge_ed)
 plot(intbridge_ed2)
 dev.off()
 
+# Plot bridge expected influence for intbridge_ed2
 plot(intbridge_ed2, 
-     order="value", 
-     standardized=FALSE, 
+     order = "value", 
+     standardized = FALSE, 
      include = "Bridge Expected Influence (1-step)")
 
-
-#Stability analysis#
+# Stability analysis
 ED_boot <- bootnet(network_ed, boots=1000,nCores=4)
 ED_boot_case <- bootnet(network_ed, boots=1000,nCores=4, type="case")
 
-save(ED_boot, file = "ED_boot.Rdata")
-save(ED_boot_case, file = "ED_boot_case.Rdata")
+save(ED_boot, file = "Output/ED_boot.Rdata")
+save(ED_boot_case, file = "Output/ED_boot_case.Rdata")
 
-
-##If closed R after saving bootnet files you can reload them below#
-load("ED_boot.Rdata")
-load("ED_boot_case.Rdata")
-####################
-
-### Plot edge weight CI
+# Plot edge weight confidence intervals
 pdf("Stability_ed.pdf")
 plot(ED_boot, labels = FALSE, order = "sample") 
 plot(ED_boot, labels = TRUE, order = "sample") 
 dev.off()
 
-### Edge weights diff test
+# Edge weights difference test
 pdf("Edge_difftest_ed.pdf")
 plot(ED_boot, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
 dev.off()
 
-### Plot centrality stability
-pdf("Stability_ed.pdf") 
+# Plot centrality stability
+pdf("Centrality_stability_ed.pdf") 
 plot(ED_boot_case)
 dev.off()
 
-### Centrality stability coefficient
+# Centrality stability coefficient
 corStability(ED_boot_case)
 
-### Centrality diff test
-pdf("Centrality_difftest_ed.pdf")
-plot(ED_boot, "strength", order="sample", labels=TRUE, names=names2) 
+## Centrality difference test
+pdf("Output/Centrality_difftest_ed.pdf")
+plot(ED_boot, "strength", order = "sample", labels = TRUE, names = names2) 
 dev.off()
 
-
-
-
-caseDroppingBoot_ed <- bootnet(network_ed, boots=1000, type="case", 
-                                 statistics=c("bridgeStrength", "bridgeCloseness", "bridgeBetweenness", "bridgeExpectedInfluence"), 
-                                 communities=groupsint)
+# Case dropping bootstrap for ED network
+caseDroppingBoot_ed <- bootnet(network_ed, 
+                               boots = 1000, 
+                               type = "case", 
+                               statistics = c("bridgeStrength", "bridgeCloseness", "bridgeBetweenness", "bridgeExpectedInfluence"), 
+                               communities = groupsint)
 corStability(caseDroppingBoot_ed)
 
-plot(caseDroppingBoot_ed, statistics="bridgeExpectedInfluence")
-
-plot(caseDroppingBoot_ed, statistics="bridgeStrength")
-
-nonParametricBoot_ed <- bootnet(network_ed, boots=1000, type="nonparametric", statistics=c("bridgeStrength", "bridgeExpectedInfluence"), 
-                                  communities=groupsint)
-
-
-pdf("BEIdifftest_ED.pdf")
-plot(nonParametricBoot_ed, statistics="bridgeExpectedInfluence", plot="difference")
+# Plot case dropping bootstrap results
+pdf("Output/Case_Dropping_Bootstrap_ED.pdf")
+plot(caseDroppingBoot_ed, statistics = "bridgeExpectedInfluence")
+plot(caseDroppingBoot_ed, statistics = "bridgeStrength")
 dev.off()
 
-pdf("BSdifftest_ED.pdf")
-plot(nonParametricBoot_ed, statistics="bridgeStrength", plot="difference")
+# Non-parametric bootstrap for ED network
+nonParametricBoot_ed <- bootnet(network_ed, 
+                                boots = 1000,
+                                type = "nonparametric", 
+                                statistics = c("bridgeStrength", "bridgeExpectedInfluence"), 
+                                communities = groupsint)
+
+# Plot non-parametric bootstrap difference tests
+pdf("Output/BEIdifftest_ED.pdf")
+plot(nonParametricBoot_ed, statistics = "bridgeExpectedInfluence", plot = "difference")
 dev.off()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#Centrality graph
-pdf("centrality.pdf", width=9)
-centralityN0 <- centralityPlot(plot0)
+pdf("Output/BSdifftest_ED.pdf")
+plot(nonParametricBoot_ed, statistics = "bridgeStrength", plot = "difference")
 dev.off()
 
-#Centrality Table
-CentralN0 <- centralityTable(network0)
-write.csv(CentralN0, "CentralN1newSpear.csv")
-
-#Constructing a partial correlation matrix
-N0edges <-getWmat(network0)
-write.csv(N0edges, "N1edges.csv")
-
-bridge(plot0, communities=c('1','1','1','1','1','1','2','2','2',
-                            '2','3','3','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
-#this is to create graph#
-intbridge <- bridge(plot0, communities=c('1','1','1','1','1','1','2','2','2',
-                                         '2','3','3','3','3','3','3'), useCommunities = "all", directed = NULL, nodes = NULL)
-#save bridge graph as pdf
-pdf("N0bridge.pdf", width = 15)
-plot(intbridge)
-dev.off()
-
-
-
-#Stability analysis#
-N0boot1<- bootnet(network0, boots=1000,nCores=4)
-N0boot2 <- bootnet(network0, boots=1000,nCores=4, type="case")
-
-save(N0boot1, file = "N1boot1.Rdata")
-save(N0boot2, file = "N1boot2.Rdata")
-
-
-
-
-##If closed R after saving bootnet files you can reload them below#
-load("N1boot1.Rdata")
-load("N1boot2.Rdata")
-####################
-
-### Plot edge weight CI
-pdf("StabilityN0.pdf")
-plot(N0boot1, labels = FALSE, order = "sample") 
-dev.off()
-
-
-### Edge weights diff test
-pdf("N1wdifftest.pdf")
-plot(N0boot1, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
-dev.off()
-
-### Plot centrality stability
-pdf("N1stability.pdf") 
-plot(N0boot2)
-dev.off()
-
-### Centrality stability coefficient
-corStability(N0boot2)
-
-### Centrality diff test
-pdf("N1cdifftest.pdf")
-plot(N0boot1, "strength", order="sample", labels=TRUE, names=names1) 
-dev.off()
-
-update.packages("bootnet")
-update.packages("networktools")
-caseDroppingBoot <- bootnet(network0, boots=1000, type="case", 
-                            statistics=c("bridgeStrength", "bridgeCloseness", "bridgeBetweenness", "bridgeExpectedInfluence"), 
-                            communities=groupsint)
-corStability(caseDroppingBoot)
-
-plot(caseDroppingBoot, statistics="bridgeExpectedInfluence")
-
-nonParametricBoot <- bootnet(network0, boots=1000, type="nonparametric", statistics=c("bridgeStrength", "bridgeExpectedInfluence"), 
-                             communities=groupsint)
-pdf("BEIdifftest.pdf")
-plot(nonParametricBoot, statistics="bridgeExpectedInfluence", plot="difference")
-dev.off()
-pdf("BSdifftest.pdf")
-plot(nonParametricBoot, statistics="bridgeStrength", plot="difference")
-dev.off()
-
-
-
-#NETWORK COMPARISON TEST
+### NETWORK COMPARISON TEST ###
 
 ## Compare Centrality
 # From the function - https://reisrgabriel.com/blog/2021-10-11-compare-centrality/
 #   
-#   Compare centrality measures
+# Compare centrality measures
 
 compareCentrality(network_ed, network_ptsd,
                   include = "Strength",
@@ -952,9 +881,7 @@ M <-
 
 cat("The biggest edge difference is:", M)
 
-
-
-##Checking invariant global strength
+# Checking invariant global strength
 S <-
   abs(
     sum(
@@ -965,7 +892,7 @@ S <-
 
 cat("Strength difference between the two networks is:", S)
 
-##Running and reporting NetworkComparisonTest
+# Running and reporting NetworkComparisonTest
 set.seed(123) # random permutation seed
 nct_results <- NCT(network0, network1,
                    it = 1000,
@@ -973,21 +900,14 @@ nct_results <- NCT(network0, network1,
 
 nct_results
 
-##Checking invariant edge strength
-nct_test_edges <- NCT(network0, network1, 
+# Checking invariant edge strength
+(nct_test_edges <- NCT(network0, network1, 
                       it = 1000, test.edges = T,
                       p.adjust.methods = "BH",
-                      progressbar = F)
+                      progressbar = F))
 
-nct_test_edges
-
-##Checking which edges are different 
+# Checking which edges are different 
 difference_value(nct_test_edges)
-
-
-
-
-
 
 # Image of all three graphs with nodes in same locations
 layout1 = averageLayout(network_all, network_ptsd, network_ed)
@@ -996,13 +916,15 @@ plot(network_all, layout=layout1, cut = 0, labels = names2)
 plot(network_ptsd, layout=layout1, cut = 0, labels = names2)
 plot(network_ed, layout=layout1, cut = 0, labels = names2)
 
+### Plot Network Graphs
 
+# Full Sample
 plot(network_all, 
-     groups=groupsint, 
-     labels=names2,
-     layout=layout1, 
-     theme="colorblind", 
-     palette="colorblind", 
+     groups = groupsint, 
+     labels = names2,
+     layout = layout1, 
+     theme = "colorblind", 
+     palette = "colorblind", 
      
      # Output Arguments
      width = 7 * 1.4, 
@@ -1010,26 +932,27 @@ plot(network_all,
      
      # Graphical Arguments 
      vsize = 7, # size of nodes 
-     border.width=0.1, # controls width of border
+     border.width = 0.1, # controls width of border
      
      # Node Labels 
      label.cex = 0.9, 
      label.color = "black",
      label.prop = 1, # proportion of the width of the node that the label scales
-     negDashed = T, 
+     negDashed = TRUE, 
      
      # Legend 
-     legend=TRUE,
-     legend.cex=0.5, # scalar of the legend 
+     legend = TRUE,
+     legend.cex = 0.5, # scalar of the legend 
 )
-title(paste0("Full Sample (n = ", nrow(data%>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("Full Sample (n = ", nrow(data %>% dplyr::select(-PTSDyn)), ")"))
 
+# PTSD and ED
 plot(network_ptsd, 
-     groups=groupsint, 
-     labels=names2,
-     layout=layout1, 
-     theme="colorblind", 
-     palette="colorblind", 
+     groups = groupsint, 
+     labels = names2,
+     layout = layout1, 
+     theme = "colorblind", 
+     palette = "colorblind", 
      
      # Output Arguments
      width = 7 * 1.4, 
@@ -1037,28 +960,27 @@ plot(network_ptsd,
      
      # Graphical Arguments 
      vsize = 7, # size of nodes 
-     border.width=0.1, # controls width of border
+     border.width = 0.1, # controls width of border
      
      # Node Labels 
      label.cex = 0.9, 
      label.color = "black",
      label.prop = 1, # proportion of the width of the node that the label scales
-     negDashed = T, 
+     negDashed = TRUE, 
      
      # Legend 
-     legend=TRUE,
-     legend.cex=0.5, # scalar of the legend 
+     legend = TRUE,
+     legend.cex = 0.5, # scalar of the legend 
 )
-title(paste0("ED and PTSD (n = ", nrow(data %>% filter(PTSDyn==1) %>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("ED and PTSD (n = ", nrow(data %>% filter(PTSDyn == 1) %>% dplyr::select(-PTSDyn)), ")"))
 
-
-
+# ED Only
 plot(network_ed, 
-     groups=groupsint, 
-     labels=names2,
-     layout=layout1, 
-     theme="colorblind", 
-     palette="colorblind", 
+     groups = groupsint, 
+     labels = names2,
+     layout = layout1, 
+     theme = "colorblind", 
+     palette = "colorblind", 
      
      # Output Arguments
      width = 7 * 1.4, 
@@ -1066,32 +988,29 @@ plot(network_ed,
      
      # Graphical Arguments 
      vsize = 7, # size of nodes 
-     border.width=0.1, # controls width of border
+     border.width = 0.1, # controls width of border
      
      # Node Labels 
      label.cex = 0.9, 
      label.color = "black",
      label.prop = 1, # proportion of the width of the node that the label scales
-     negDashed = T, 
+     negDashed = TRUE, 
      
      # Legend 
-     legend=TRUE,
-     legend.cex=0.5, # scalar of the legend 
+     legend = TRUE,
+     legend.cex = 0.5, # scalar of the legend 
 )
-title(paste0("ED Only (n = ", nrow(data %>% filter(PTSDyn==0) %>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("ED Only (n = ", nrow(data %>% filter(PTSDyn == 0) %>% dplyr::select(-PTSDyn)), ")"))
 
+### Large Network Graphs
 
-
-
-
-
-
+# Full Sample
 plot(network_all, 
-     groups=groupsint, 
-     labels=names2,
-     layout=layout1, 
-     theme="colorblind", 
-     palette="colorblind", 
+     groups = groupsint, 
+     labels = names2,
+     layout = layout1, 
+     theme = "colorblind", 
+     palette = "colorblind", 
      
      # Output Arguments
      width = 7 * 1.4, 
@@ -1099,32 +1018,32 @@ plot(network_all,
      
      # Graphical Arguments 
      vsize = 7, # size of nodes 
-     border.width=0.1, # controls width of border
+     border.width = 0.1, # controls width of border
      
      # Node Labels 
      label.cex = 0.9, 
      label.color = "black",
      label.prop = 1, # proportion of the width of the node that the label scales
-     negDashed = T, 
+     negDashed = TRUE, 
      
      # Legend 
-     legend=TRUE,
-     legend.cex=0.35, # scalar of the legend 
-     legend.mode="style1", 
-     nodeNames=items, 
+     legend = TRUE,
+     legend.cex = 0.35, # scalar of the legend 
+     legend.mode = "style1", 
+     nodeNames = items, 
      GLratio = 2.5, # relative size of graph compared to the layout
      layoutScale = c(0.8, 0.9), 
-     layoutOffset=c(-0.3,0) 
+     layoutOffset = c(-0.3, 0) 
 )
-title(paste0("Full Sample (n = ", nrow(data%>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("Full Sample (n = ", nrow(data %>% dplyr::select(-PTSDyn)), ")"))
 
-
+# PTSD and ED
 plot(network_ptsd, 
-     groups=groupsint, 
-     labels=names2,
-     layout=layout1, 
-     theme="colorblind", 
-     palette="colorblind", 
+     groups = groupsint, 
+     labels = names2,
+     layout = layout1, 
+     theme = "colorblind", 
+     palette = "colorblind", 
      
      # Output Arguments
      width = 7 * 1.4, 
@@ -1132,32 +1051,32 @@ plot(network_ptsd,
      
      # Graphical Arguments 
      vsize = 7, # size of nodes 
-     border.width=0.1, # controls width of border
+     border.width = 0.1, # controls width of border
      
      # Node Labels 
      label.cex = 0.9, 
      label.color = "black",
      label.prop = 1, # proportion of the width of the node that the label scales
-     negDashed = T, 
+     negDashed = TRUE, 
      
      # Legend 
-     legend=TRUE,
-     legend.cex=0.35, # scalar of the legend 
-     legend.mode="style1", 
-     nodeNames=items, 
+     legend = TRUE,
+     legend.cex = 0.35, # scalar of the legend 
+     legend.mode = "style1", 
+     nodeNames = items, 
      GLratio = 2.5, # relative size of graph compared to the layout
      layoutScale = c(0.8, 0.9), 
-     layoutOffset=c(-0.3,0) 
+     layoutOffset = c(-0.3, 0) 
 )
-title(paste0("ED and PTSD (n = ", nrow(data %>% filter(PTSDyn==1) %>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("ED and PTSD (n = ", nrow(data %>% filter(PTSDyn == 1) %>% dplyr::select(-PTSDyn)), ")"))
 
-
+# ED Only
 plot(network_ed, 
-     groups=groupsint, 
-     labels=names2,
-     layout=layout1, 
-     theme="colorblind", 
-     palette="colorblind", 
+     groups = groupsint, 
+     labels = names2,
+     layout = layout1, 
+     theme = "colorblind", 
+     palette = "colorblind", 
      
      # Output Arguments
      width = 7 * 1.4, 
@@ -1165,76 +1084,71 @@ plot(network_ed,
      
      # Graphical Arguments 
      vsize = 7, # size of nodes 
-     border.width=0.1, # controls width of border
+     border.width = 0.1, # controls width of border
      
      # Node Labels 
      label.cex = 0.9, 
      label.color = "black",
      label.prop = 1, # proportion of the width of the node that the label scales
-     negDashed = T, 
+     negDashed = TRUE, 
      
      # Legend 
-     legend=TRUE,
-     legend.cex=0.35, # scalar of the legend 
-     legend.mode="style1", 
-     nodeNames=items, 
+     legend = TRUE,
+     legend.cex = 0.35, # scalar of the legend 
+     legend.mode = "style1", 
+     nodeNames = items, 
      GLratio = 2.5, # relative size of graph compared to the layout
      layoutScale = c(0.8, 0.9), 
-     layoutOffset=c(-0.3,0) 
+     layoutOffset = c(-0.3, 0) 
 )
-title(paste0("ED_Only (n = ", nrow(data %>% filter(PTSDyn==0) %>%dplyr::select(-PTSDyn)), ")"))
+title(paste0("ED Only (n = ", nrow(data %>% filter(PTSDyn == 0) %>% dplyr::select(-PTSDyn)), ")"))
 
+### Centrality Plots
 
-
-
-centralityPlot(list("PTSD and ED"=plot_ptsdv2, "ED"=plot_edv2), 
-               labels=names2, 
+centralityPlot(list("PTSD and ED" = plot_ptsdv2, "ED" = plot_edv2), 
+               labels = names2, 
                scale = "z-scores")
 
-centralityPlot(list("Total Sample"=plot_allv3, "PTSD and ED"=plot_ptsdv2, "ED"=plot_edv2), 
-               labels=names2, 
+centralityPlot(list("Total Sample" = plot_allv3, "PTSD and ED" = plot_ptsdv2, "ED" = plot_edv2), 
+               labels = names2, 
                scale = "z-scores")
 
-centralityPlot(list("Total Sample"=plot_allv3, "PTSD and ED"=plot_ptsdv2, "ED"=plot_edv2), 
-               labels=names2, 
+centralityPlot(list("Total Sample" = plot_allv3, "PTSD and ED" = plot_ptsdv2, "ED" = plot_edv2), 
+               labels = names2, 
                scale = "z-scores", 
                include = "All")
 
+### Network Simulation
 
-
-
-
-
-network_all2 <- estimateNetwork(data %>%dplyr::select(-PTSDyn), 
-                               default = "EBICglasso", 
-                               corMethod = "cor", 
-                               corArgs = list(method = "spearman", use = "pairwise.complete.obs"), 
-                               refit=TRUE) #use Spearman correlation
+network_all2 <- estimateNetwork(data %>% dplyr::select(-PTSDyn), 
+                                default = "EBICglasso", 
+                                corMethod = "cor", 
+                                corArgs = list(method = "spearman", use = "pairwise.complete.obs"), 
+                                refit = TRUE) # Use Spearman correlation
 
 simRes_all = netSimulator(network_all2$graph, 
                           dataGenerator = ggmGenerator(ordinal = FALSE), 
-                          default="EBICglasso", 
+                          default = "EBICglasso", 
                           nCases = c(100, 250, 500, 1000, 2500), 
                           tuning = 0.5, 
-                          nReps=100, 
-                          nCores=4)
+                          nReps = 100, 
+                          nCores = 4)
 simRes_all
 plot(simRes_all) 
-# N=100 achieve a correlation between the "true" and estimated networks above 
-plot(simRes_all, yvar=c("strength", "closeness", "betweenness"))
+# N=100 achieves a correlation between the "true" and estimated networks above 
+plot(simRes_all, yvar = c("strength", "closeness", "betweenness"))
 
+### Network Comparison Tests
 
-
-
-network_ptsd <- estimateNetwork(data %>% filter(PTSDyn==1) %>%dplyr::select(-PTSDyn), 
+network_ptsd <- estimateNetwork(data %>% filter(PTSDyn == 1) %>% dplyr::select(-PTSDyn), 
                                 default = "EBICglasso", 
                                 corMethod = "cor", 
-                                corArgs = list(method = "spearman", use = "pairwise.complete.obs")) #use Spearman correlation
+                                corArgs = list(method = "spearman", use = "pairwise.complete.obs")) # Use Spearman correlation
 
-network_ed <- estimateNetwork(data %>% filter(PTSDyn==0) %>%dplyr::select(-PTSDyn), 
+network_ed <- estimateNetwork(data %>% filter(PTSDyn == 0) %>% dplyr::select(-PTSDyn), 
                               default = "EBICglasso", 
                               corMethod = "cor", 
-                              corArgs = list(method = "spearman", use = "pairwise.complete.obs")) #use Spearman correlation
+                              corArgs = list(method = "spearman", use = "pairwise.complete.obs")) # Use Spearman correlation
 
 res_nct = NCT(network_ptsd, 
               network_ed, 
@@ -1243,32 +1157,36 @@ res_nct = NCT(network_ptsd,
               edges = "all", 
               p.adjust.methods = "BH")
 
-# global strength results - differences in the level of connectivity 
-res_nct$glstrinv.pval # pval = 0.122
-res_nct$glstrinv.real # S = 0.99
-# The test on invariance of global strength was not significant (S=0.99, p=0.122)
-# Thus, visual differences are due to differences in sample size and/or sampling variance
+# Global strength results - differences in the level of connectivity 
+res_nct$glstrinv.pval
+res_nct$glstrinv.real 
 
-# omnibus test results 
-res_nct$nwinv.pval # pval = 0.317
-res_nct$nwinv.real # M = 0.145
-# We inspected the omnibus on invariance of the network structure to investigate whether
-# there are any significant differences in edges 
-# The omnibus test was not significant (M=0.145, p=0.317)
-# not significant so no edge test?
+# Omnibus test results 
+res_nct$nwinv.pval
+res_nct$nwinv.real 
 
-# edge results 
+# Edge results 
 res_nct$einv.pvals
-res_nct$einv.pvals[which(res_nct$einv.pvals[,3] <= 0.05),]
+res_nct$einv.pvals[which(res_nct$einv.pvals[, 3] <= 0.05),]
 
-
-
-
+# Plot Network Graphs with Maximum Edge Value
 
 maxi = max(network_ptsd$graph, network_ed$graph)
 
-qgraph(network_ptsd$graph, maximum=maxi, theme="colorblind", labels=names2)
-title("PTSD and ED", line=-2)
+qgraph(network_ptsd$graph, maximum = maxi, theme = "colorblind", labels = names2)
+title("PTSD and ED", line = -2)
 
-qgraph(network_ed$graph, maximum=maxi, theme="colorblind", labels=names2)
-title("ED", line=-2)
+qgraph(network_ed$graph, maximum = maxi, theme = "colorblind", labels = names2)
+title("ED", line = -2)
+
+### bridge - PTSD: 
+intbridge_ptsd2
+intbridge_ptsd
+
+### bridge - ED: 
+intbridge_ed2
+intbridge_ed
+
+### bridge: all 
+intbridge
+intbridge2

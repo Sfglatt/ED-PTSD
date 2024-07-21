@@ -25,13 +25,9 @@ if (!require("igraph")) {install.packages("igraph"); require("igraph")}
 ```
 
 ```{r Data}
-
-ED_PTSD1 <- read_xlsx("C:/Users/sofel/OneDrive/Documents/Labs/UofL EAT Lab/ED_ptsd/SLEEPPTSDEDS_imputed_11-21-23.xlsx") # N 1008
-
-## replace with correct dataset! I used the most recent imputed version that I had from 11-21-23
+ED_PTSD1 <- read_xlsx("Raw_Data/SLEEPPTSDEDS_imputed_11-21-23.csv") # N 1008
 
 # isolate variables
-
 ED_PTSD <- ED_PTSD1[,2:17]
 ```
 
@@ -66,11 +62,9 @@ EP_ega_cr_str <- plot(EP_ega,
      layout = "circle") # if you want the layout to be a circle
 
 # summary statistics for the network
-
 summary(EP_ega)
 
 # visualize
-
 EP_ega
 EP_ega_str
 EP_ega_cr_str
@@ -83,30 +77,25 @@ EP_ega_boot <- bootEGA(
 )
 
 # Summary statistics about the bootstrap EGA
-
 summary(EP_ega_boot)
 
 # Plots comparing the data EGA against 1000 bootsrapping procedure
+(compare <- compare.EGA.plots(EP_ega, EP_ega_boot,
+  labels = c("Empirical", "Bootstrap")))
 
-INQ_compare <- compare.EGA.plots(EP_ega, EP_ega_boot,
-  labels = c("Empirical", "Bootstrap"))
-
-# item stability
-
+# Item stability
 EP_boot_dim <- dimensionStability(EP_ega_boot,  IS.plot = TRUE, structure = NULL)
 
-# where are the items going if not 100% stable
-
+# Where are the items going if not 100% stable?
 EP_boot_dim$item.stability$item.stability$all.dimensions
 
-# node loadings in EGA is approximately equal to node strength centrality 
+# Node loadings in EGA is approximately equal to node strength centrality 
 net.loads(
   EP_ega,
   wc, # detected from EGA object
   loading.method = "BRM", # recommended
   rotation = NULL,
-  seed = 123456,
-)
+  seed = 123456,)
 ```
 
 
@@ -116,7 +105,6 @@ head(ED_PTSD_groups)
 
 ED_wPTSD <- ED_PTSD_groups %>% filter(PTSDyn==1)
 ED_woPTSD <- ED_PTSD_groups %>% filter(PTSDyn==0)
-
 
 Ega_wPTSD <- EGA(
   data = ED_wPTSD[1:16],
@@ -133,7 +121,7 @@ Ega_wPTSD_str <- plot(Ega_wPTSD,
      node.size = colSums(Ega_wPTSD$network)^2 * 16) # change node size by strength
 Ega_wPTSD_str
 
-# bootstrap EGA
+# Bootstrap EGA
 Ega_w_PTSD_boot <- bootEGA(
   data = ED_wPTSD[1:16], 
   iter = 1000,
@@ -141,32 +129,25 @@ Ega_w_PTSD_boot <- bootEGA(
 )
 
 # Summary statistics about the bootstrap EGA
-
 summary(Ega_w_PTSD_boot)
 
-# Plots comparing the data EGA against 1000 bootsrapping procedure
-
-INQ_compare <- compare.EGA.plots(Ega_wPTSD, Ega_w_PTSD_boot,
+# Plots comparing the data EGA against 1000 bootstrapping procedure
+EGA_compare <- compare.EGA.plots(Ega_wPTSD, Ega_w_PTSD_boot,
   labels = c("Empirical", "Bootstrap"))
 
-# item stability
-
+# Item stability
 Ega_w_PTSD_dim <- dimensionStability(Ega_w_PTSD_boot,  IS.plot = TRUE, structure = NULL)
 
-# where are the items going if not 100% stable
-
+# Where are the items going if not 100% stable
 Ega_w_PTSD_dim$item.stability$item.stability$all.dimensions
 
-# node loadings in EGA is approximately equal to node strength centrality 
 net.loads(
   Ega_wPTSD,
   wc, # detected from EGA object
   loading.method = "BRM", # recommended
   rotation = NULL,
-  seed = 123456,
-)
+  seed = 123456,)
 ```
-
 
 ```{r EGA ED without PTSD}
 Ega_wo_PTSD <- EGA(
@@ -182,9 +163,8 @@ Ega_wo_PTSD <- EGA(
 
 Ega_wo_PTSD_str <- plot(Ega_wo_PTSD, 
      node.size = colSums(Ega_wo_PTSD$network)^2 * 16) # change node size by strength
-Ega_wo_PTSD_str
 
-# bootstrap EGA
+# Bootstrap EGA
 Ega_wo_PTSD_boot <- bootEGA(
   data = ED_woPTSD[1:16], 
   iter = 1000,
@@ -192,20 +172,16 @@ Ega_wo_PTSD_boot <- bootEGA(
 )
 
 # Summary statistics about the bootstrap EGA
-
 summary(Ega_wo_PTSD_boot)
 
-# Plots comparing the data EGA against 1000 bootsrapping procedure
-
-INQ_compare <- compare.EGA.plots(Ega_wo_PTSD, Ega_wo_PTSD_boot,
+# Plots comparing the data EGA against 1000 bootstrapping procedure
+EGA_compare <- compare.EGA.plots(Ega_wo_PTSD, Ega_wo_PTSD_boot,
   labels = c("Empirical", "Bootstrap"))
 
-# item stability
-
+# Item stability
 Ega_wo_PTSD_dim <- dimensionStability(Ega_wo_PTSD_boot,  IS.plot = TRUE, structure = NULL)
 
-# where are the items going if not 100% stable
-
+# Where are the items going if not 100% stable
 Ega_wo_PTSD_dim$item.stability$item.stability$all.dimensions
 
 # node loadings in EGA is approximately equal to node strength centrality 
@@ -214,13 +190,11 @@ net.loads(
   wc, # detected from EGA object
   loading.method = "BRM", # recommended
   rotation = NULL,
-  seed = 123456,
-)
+  seed = 123456,)
 ```
 
 ```{r network v latent model algorithm}
-
-ED_PTSD_LCT <- LCT(
+(ED_PTSD_LCT <- LCT(
   data = ED_PTSD,
   n = NULL,
   corr =  "auto", 
@@ -230,8 +204,6 @@ ED_PTSD_LCT <- LCT(
   iter = 100,
   seed = 123456,
   verbose = FALSE,
-)
-
-ED_PTSD_LCT
+))
 ```
 
