@@ -1,0 +1,86 @@
+---
+title: "02a_Cleaning"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Packages}
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}
+if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}
+```
+
+```{r Data}
+DATA <- read.csv('Raw_Data/SLEEPPTSDEDS_COMBINED_WITHDEMOS.csv')
+```
+
+```{r Merge broken variables}
+Binge <- DATA %>% select(edeq4_binge, edeq6_binge)
+Binge[Binge == -99] <- NA
+
+#both binges contain NA -> do nothing for now
+binge4_NA <- which(is.na(Binge$edeq4_binge) & !is.na(Binge$edeq6_binge))
+
+Binge$new <- Binge$edeq4_binge
+Binge$new[binge4_NA] <- Binge$edeq6_binge[binge4_NA]
+
+DATA$edeq_binge <- Binge$new
+
+Purge <- DATA %>% select(edeq4_purge, edeq6_purge)
+Purge[Purge == -99] <- NA
+
+#both binges contain NA -> do nothing for now
+purge4_NA <- which(is.na(Purge$edeq4_purge) & !is.na(Purge$edeq6_purge))
+
+Purge$new <- Purge$edeq4_purge
+Purge$new[purge4_NA] <- Purge$edeq6_purge[purge4_NA]
+
+DATA$edeq_purge <- Purge$new
+```
+
+```{r vars}
+DATA <- DATA %>% select(id, edeq_fasting, edeq_fearfat, edeq_feltfat, edeq_restraint, 
+                        edeq_binge, #edeq4_binge, edeq6_binge, 
+                        edeq_purge, #edeq4_purge, edeq6_purge, 
+                        pclc_16, pclc_17, pclc_7, pclc_6, pclc_1, pclc_11, #
+                        pclc_13, pclc_2, 
+                        bdi_19, bdi_15)
+```
+
+```{r Missingness}
+
+sum(is.na(DATA))
+sum(DATA == "", na.rm = T)
+sum(DATA == -99, na.rm = T)
+
+#change all -99s to NA
+DATA[DATA == -99] <- NA
+
+sum(is.na(DATA))
+sum(DATA == "", na.rm = T)
+sum(DATA == -99, na.rm = T)
+
+# Look closer at NAs
+
+rowSums(is.na(DATA))
+sort(colSums(is.na(DATA)))
+
+# 37 rows contain all NAs, delete those rows
+DATA <- DATA[-which(is.na(DATA$edeq_fearfat)) ,]
+
+table(rowSums(is.na(DATA)))
+
+# delete what percent?
+# how many NAs are in each row
+rowSums(is.na(DATA))
+# which rows have > 10 NAs
+      rowSums(is.na(DATA)) >= 10
+which(rowSums(is.na(DATA)) >= 10) 
+# remove rows with > 10 NAs
+DATA <- DATA[-which(rowSums(is.na(DATA)) >= 10) ,]
+
+sort(rowSums(is.na(DATA)), decreasing = T)
+```
+

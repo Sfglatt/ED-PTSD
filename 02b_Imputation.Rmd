@@ -1,0 +1,215 @@
+---
+title: "02b_Imputation"
+output: html_notebook
+---
+
+```{r Packages}
+if (!require("mice")) {install.packages("mice"); require("mice")}
+if (!require("sjmisc")) {install.packages("sjmisc"); require("sjmisc")}
+if (!require("VIM")) {install.packages("VIM"); require("VIM")}
+```
+
+
+```{r Data}
+df_all = read.csv("Raw_Data/SLEEPPTSDEDS_COMBINED_WITHDEMOS_1008.csv", 
+                  header = TRUE, sep = ",", na.strings=c("NA", StringsAsFactors = FALSE))
+colnames(df_all)
+head(df_all)
+```
+
+
+```{r Network variables}
+# Six ED symptoms 
+df_all$edeq_bingestz # binge-eating 
+df_all$edeq_purgestz # burging 
+df_all$edeq_fasting  # fasting 
+df_all$edeq_restraintsubstz # restraint 
+df_all$edeq_fearfat  # fear of weight gain
+df_all$edeq_feltfat  # feeling fat 
+df_all$edeq_fasting
+df_all$edeq_restraint
+
+
+# Six PCLC items 
+df_all$pclc_1  # intrusive thoughts
+df_all$pclc_6  # avoid thinking
+df_all$pclc_7  # avoid activities
+df_all$pclc_11 # inability to feel positive emotions 
+df_all$pclc_16 # super alert
+df_all$pclc_17 # easily startled
+
+# Four Sleep Disturbance items 
+table(df_all$bdi_15, useNA="ifany") # changes in sleeping pattern
+df_all$bdi_19 # tired or fatigue 
+df_all$pclc_2 # nightmares
+df_all$pclc_13 # trouble falling/staying asleep
+
+
+colnames(df_all)
+data = df_all[c("id", "edeq_bingestz", "edeq_purgestz", "edeq_fasting", "edeq_restraintsubstz", 
+                "edeq_fearfat", "edeq_feltfat", "edeq_restraint", 
+                "pclc_1", "pclc_6", "pclc_7", "pclc_11", "pclc_16", "pclc_17", 
+                "bdi_15", "bdi_19", "pclc_2", "pclc_13")]
+
+
+# inspect missing data 
+colnames(data)
+md.pat = md.pattern(data, rotate.names = TRUE)
+md.pat[,1]
+# blue squares represent non-missing data and pink squares represent missing data 
+# the numbers on the left represent the number of rows 
+# the number on the right represent the number of variables that have missing values
+# the numbers on the bottom represent the number of observations with missing values in that variable
+# there are 824 complete rows of data 
+# there are 79 rows where edeq_purgestz is the only missing variable
+
+
+
+
+# specify type of variables 
+table(data$edeq_fasting, useNA="ifany")
+data$edeq_fasting = factor(data$edeq_fasting)
+levels(data$edeq_fasting)
+
+table(data$edeq_restraint, useNA="ifany")
+data$edeq_restraint = factor(data$edeq_restraint)
+levels(data$edeq_restraint)
+
+table(data$edeq_fearfat, useNA="ifany")
+data$edeq_fearfat = factor(data$edeq_fearfat)
+levels(data$edeq_fearfat)
+
+table(data$edeq_feltfat, useNA="ifany")
+data$edeq_feltfat = factor(data$edeq_feltfat)
+levels(data$edeq_feltfat)
+
+table(data$pclc_1, useNA="ifany")
+data$pclc_1 = factor(data$pclc_1)
+levels(data$pclc_1)
+
+table(data$pclc_6, useNA="ifany")
+data$pclc_6 = factor(data$pclc_6)
+levels(data$pclc_6)
+
+table(data$pclc_7, useNA="ifany")
+data$pclc_7 = factor(data$pclc_7)
+levels(data$pclc_7)
+
+table(data$pclc_11, useNA="ifany")
+data$pclc_11 = factor(data$pclc_11)
+levels(data$pclc_11)
+
+table(data$pclc_16, useNA="ifany")
+data$pclc_16 = factor(data$pclc_16)
+levels(data$pclc_16)
+
+table(data$pclc_17, useNA="ifany")
+data$pclc_17 = factor(data$pclc_17)
+levels(data$pclc_17)
+
+table(data$bdi_15, useNA="ifany")
+data$bdi_15 = factor(data$bdi_15)
+levels(data$bdi_15)
+
+table(data$bdi_19, useNA="ifany")
+data$bdi_19 = factor(data$bdi_19)
+levels(data$bdi_19)
+
+table(data$pclc_2, useNA="ifany")
+data$pclc_2 = factor(data$pclc_2)
+levels(data$pclc_2)
+
+table(data$pclc_13, useNA="ifany")
+data$pclc_13 = factor(data$pclc_13)
+levels(data$pclc_13)
+```
+
+```{r Imputation}
+# impute data 
+set.seed(1948)
+data_imputed = mice(data, m=5, meth=c("pmm"), print=FALSE)
+data_imputed$method
+data_imputed$predictorMatrix
+
+summary(data_imputed)
+
+head(complete(data_imputed))
+
+# Visualize data_imputedutations
+densityplot(data_imputed)
+
+# visualize one variable at a time
+densityplot(data_imputed, ~ edeq_bingestz | .imp)
+densityplot(data_imputed, ~ edeq_purgestz | .imp)
+densityplot(data_imputed, ~ edeq_fasting | .imp)
+densityplot(data_imputed, ~ edeq_restraintsubstz | .imp)
+densityplot(data_imputed, ~ edeq_fearfat | .imp)
+densityplot(data_imputed, ~ edeq_feltfat | .imp)
+
+densityplot(data_imputed, ~ pclc_1 | .imp)
+densityplot(data_imputed, ~ pclc_6 | .imp)
+densityplot(data_imputed, ~ pclc_7 | .imp)
+densityplot(data_imputed, ~ pclc_11 | .imp)
+densityplot(data_imputed, ~ pclc_16 | .imp)
+densityplot(data_imputed, ~ pclc_17 | .imp)
+
+densityplot(data_imputed, ~ bdi_15 | .imp)
+densityplot(data_imputed, ~ bdi_19 | .imp)
+densityplot(data_imputed, ~ pclc_2 | .imp)
+densityplot(data_imputed, ~ pclc_13 | .imp)
+
+stripplot(data_imputed, pch=20, cex=1.4)
+
+stripplot(data_imputed, edeq_fasting ~ .imp)
+stripplot(data_imputed, edeq_fearfat ~ .imp)
+stripplot(data_imputed, edeq_feltfat ~ .imp)
+stripplot(data_imputed, pclc_1 ~ .imp)
+stripplot(data_imputed, pclc_6 ~ .imp)
+stripplot(data_imputed, pclc_7 ~ .imp)
+stripplot(data_imputed, pclc_11 ~ .imp)
+stripplot(data_imputed, pclc_16 ~ .imp)
+stripplot(data_imputed, pclc_17 ~ .imp)
+
+stripplot(data_imputed, bdi_15 ~ .imp)
+stripplot(data_imputed, bdi_19 ~ .imp)
+stripplot(data_imputed, pclc_2 ~ .imp)
+stripplot(data_imputed, pclc_13 ~ .imp)
+```
+
+
+```{r Merge Imputations}
+
+# Merge imputations 
+data_merged<-merge_imputations(
+  data, 
+  data_imputed, 
+  ori = data,
+  summary = c("none", "dens", "hist", "sd"), 
+  filter = NULL 
+)
+# check what it looks like
+head(data_merged)
+colnames(data_merged)
+
+data_merged = data_merged[c(1, 19:35)]
+
+names(data_merged) <- sub("_imp$", "", names(data_merged)) 
+colnames(data_merged)
+
+# make sure there are no missing now that we've imputed
+md.pattern(data_merged) # check visually. expecting blue squares
+sapply(data_merged, function(x) sum(is.na(x))) # check numerically. I trust R more than my eyes to detect missingness. expecting variable names with all 0's
+
+apply(data_merged, 2, range)
+
+# add in PTSDyn variable 
+colnames(df_all)
+df_temp = df_all[c("id", "PTSDyn")]
+
+data_merged_final = merge(data_merged, df_temp, by="id")
+head(data_merged_final)
+
+write.csv(data_merged, "Created_Data/SLEEPPTSDEDS_imputed_11-13-23.csv")
+```
+
+

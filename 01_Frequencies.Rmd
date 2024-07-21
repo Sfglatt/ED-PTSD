@@ -1,0 +1,305 @@
+---
+title: "01_PTSD_ED_frequencies"
+output: html_notebook
+---
+
+```{r Packages}
+if (!require("readxl")) {install.packages("readxl"); require("readxl")}
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}
+if (!require("descr")) {install.packages("descr"); require("descr")}
+if (!require("DescTools")) {install.packages("DescTools"); require("DescTools")}
+if (!require("esc")) {install.packages("esc"); require("esc")}
+if (!require("sjPlot")) {install.packages("sjPlot"); require("sjPlot")}
+if (!require("tidyr")) {install.packages("tidyr"); require("tidyr")}
+```
+
+```{r Import data}
+PCLC_data <- read.csv("Raw_Data/1033ABCTSLEEPPTSDEDS_COMBINED_WITHDEMOS.csv") #1033 people with varied levels of PTSD symptoms
+
+glimpse(PCLC_data)
+```
+
+```{r data checks}
+
+### sleep scoring ###
+
+table(PCLC_data$bdi_15, useNA = "ifany")
+table(PCLC_data$bdi_19, useNA = "ifany")
+table(PCLC_data$pclc_2, useNA = "ifany")
+table(PCLC_data$pclc_13, useNA = "ifany")
+
+PCLC_data <- PCLC_data %>%
+  mutate(
+    bdi_15_new = ifelse(bdi_15 == -99, NA, ifelse(bdi_15 == 0, 0, 1)),
+    bdi_19_new = ifelse(bdi_19 == -99, NA, ifelse(bdi_19 == 0, 0, 1)),
+    pclc_2_new = ifelse(pclc_2 == -99, NA, ifelse(pclc_2 >= 2, 1, ifelse(pclc_2 == 1, 0, NA))),
+    pclc_13_new = ifelse(pclc_13 == -99, NA, ifelse(pclc_13 >= 2, 1, ifelse(pclc_13 == 1, 0, NA))),
+    sleep_dis = ifelse(rowSums(cbind(bdi_15_new, bdi_19_new, pclc_2_new, pclc_13_new) == 1, na.rm = TRUE) >= 1, 1, 0),
+    sleep_dis_bdi = ifelse(bdi_15_new == 1 | bdi_19_new == 1, 1, ifelse(is.na(bdi_15_new) | is.na(bdi_19_new), NA, 0))
+  )
+
+
+table(PCLC_data$bdi_15_new, useNA = "ifany")
+#  0    1   <NA> 
+# 180  849    4
+
+table(PCLC_data$bdi_19_new, useNA = "ifany")
+#  0    1   <NA> 
+# 216  813    4 
+
+table(PCLC_data$pclc_2_new, useNA = "ifany")
+#  0    1   <NA> 
+# 348  683    2 
+table(PCLC_data$pclc_13_new, useNA = "ifany")
+#  0    1   <NA> 
+# 203  829    1 
+
+table(PCLC_data$sleep_dis_bdi, useNA = "ifany")
+#   0    1  <NA> 
+#  86  943    4 
+
+table(PCLC_data$sleep_dis, useNA = "ifany")
+#   0    1 
+#  25 1008 
+
+
+filtered_dat_0 <- PCLC_data %>%
+  filter(sleep_dis == 0) %>%
+  select(bdi_15_new, bdi_19_new, pclc_2_new, pclc_13_new)
+
+filtered_dat_1 <- PCLC_data %>%
+  filter(sleep_dis == 1) %>%
+  select(bdi_15_new, bdi_19_new, pclc_2_new, pclc_13_new)
+
+(na_responses <- PCLC_data %>%
+  filter(is.na(bdi_15_new) | is.na(bdi_19_new) | is.na(pclc_2_new) | is.na(pclc_13_new)) %>%
+  select(bdi_15_new, bdi_19_new, pclc_2_new, pclc_13_new))
+
+pclc_counts <- cbind(
+  pclc_2 = table(cut(PCLC_data$pclc_2, breaks = c(-Inf, 1:5, Inf), include.lowest = TRUE, right = FALSE), useNA = "ifany"),
+  pclc_13 = table(cut(PCLC_data$pclc_13, breaks = c(-Inf, 1:5, Inf), include.lowest = TRUE, right = FALSE), useNA = "ifany"))
+
+
+### PTSD scoring ###
+
+PCLC_data <- PCLC_data %>%
+  mutate(
+    pcl_44_new = ifelse(rowSums(select(., starts_with("pclc_")) >= 44, na.rm = TRUE) >= 1, 1, 0),
+    pcl_50_new = ifelse(rowSums(select(., starts_with("pclc_")) >= 50, na.rm = TRUE) >= 1, 1, 0),
+    pcl_31_new = ifelse(rowSums(select(., starts_with("pclc_")) >= 31, na.rm = TRUE) >= 1, 1, 0))
+
+table(PCLC_data$pcl_44_new, useNA = "ifany")
+#  0   1 
+# 459 574 
+
+table(PCLC_data$pcl_50_new, useNA = "ifany")
+#  0   1 
+# 594 439 
+
+table(PCLC_data$pcl_31_new, useNA = "ifany")
+#  0   1 
+# 181 852 
+```
+
+```{r PTSD cutoff 49 and sleep disturbance (all items)}
+# chi-square between PTSD and sleep disturbances 
+## PCL-C cutoff is >49 (50 & over)
+
+table(PCLC_data$PTSDyn_49, # PCLC 
+      PCLC_data$SleepDisyn) # SD
+
+res2 <- chisq.test(PCLC_data$PTSDyn_49, PCLC_data$SleepDisyn, correct=FALSE)
+
+res2
+
+esc_chisq(
+  18.935,
+  p,
+  totaln = 1033,
+  es.type = c("or"),
+  study = NULL
+) # effect size
+
+d2 <- PCLC_data %>% select(PTSDyn_49, 
+                          SleepDisyn)
+d2 %>%
+  sjtab(fun = "xtab", var.labels=c("PCL-C > 49", "Sleep Disturbance"),
+        show.row.prc = TRUE, show.col.prc = TRUE, show.summary = TRUE, show.exp = TRUE, show.legend = TRUE)
+```
+
+```{r PTSD cutoff 30 and sleep disturbance (all items)}
+# chi-square between PTSD and sleep disturbances 
+## PCL-C cutoff is >30 (31 & over)
+
+table(PCLC_data$PTSDyn_30, #PCLC 
+      PCLC_data$SleepDisyn) #SD
+
+res3 <- chisq.test(PCLC_data$PTSDyn_30, PCLC_data$SleepDisyn, correct=FALSE)
+
+res3 # chi square inappropriate
+
+d3 <- PCLC_data %>% select(PTSDyn_30, 
+                          SleepDisyn)
+d3 %>%
+  sjtab(fun = "xtab", var.labels=c("PCL-C >30", "Sleep Disturbance"),
+        show.row.prc = TRUE, show.col.prc = TRUE, show.summary = TRUE, show.exp = TRUE, show.legend = TRUE)
+
+res5 <- fisher.test(table(d3))
+res5
+
+CrossTable(PCLC_data$PTSDyn_30, PCLC_data$SleepDisyn,
+       fisher = T, chisq = T, expected = T,
+       prop.c = F, prop.t = F, prop.chisq = F, 
+       sresid = T, format = 'SPSS')
+```
+
+```{r PTSD cutoff 44 and sleep disturbance (all items)}
+# chi-square between PTSD and sleep disturbances 
+## PCL-C cutoff is >43 (45 & over)
+
+table(PCLC_data$pcl_44_new, # PCLC 
+      PCLC_data$sleep_dis)  # SD
+
+(res1_new <- chisq.test(PCLC_data$pcl_44_new, PCLC_data$sleep_dis, correct = FALSE))
+
+esc_chisq(
+  32.039,
+  p,
+  totaln = 1033,
+  es.type = c("or"),
+  study = NULL
+) # effect size
+
+d1 <- PCLC_data %>% dplyr::select(PTSDyn_44, 
+                          SleepDisyn)
+d1 %>%
+  sjtab(fun = "xtab", var.labels=c("PCL-C >44", "Sleep Disturbance"),
+        show.row.prc = TRUE, show.col.prc = TRUE, show.summary = TRUE, show.exp = TRUE, show.legend = TRUE)
+
+# Draw a mosaic plot  - underlies residuals
+mosaicplot(~ PTSDyn_44 + SleepDisyn, data = d1,
+           main = "Sleep+PTSV v sleep", shade = TRUE)
+```
+
+```{r PTSD cutoff 44 and sleep disturbance (BDI items)}
+# PCL-C > 44 
+## sleep *ONLY* categorized with BDI-II items
+
+table(PCLC_data$pcl_44_new, #PCLC 
+      PCLC_data$sleep_dis_bdi) #SD
+
+(res2_new <- chisq.test(PCLC_data$pcl_44_new, PCLC_data$sleep_dis_bdi, correct = FALSE))
+
+esc_chisq(
+  49.884,
+  p,
+  totaln = 1029,
+  es.type = c("or"),
+  study = NULL
+) # effect size
+
+d7 <- PCLC_data %>% select(PTSDyn_44, 
+                          BDI_sleepyn)
+d7 %>%
+  sjtab(fun = "xtab", var.labels=c("PCL-C > 44", "BDI-II Sleep Disturbance"),
+        show.row.prc = TRUE, show.col.prc = TRUE, show.summary = TRUE, show.exp = TRUE, show.legend = TRUE)
+
+```
+
+```{r PTSD cutoff 30 and sleep disturbance (BDI items)}
+# PCL-C > 44 
+## sleep *ONLY* categorized with BDI-II items
+
+table(PCLC_data$PTSDyn_30, # PCLC 
+      PCLC_data$BDI_sleepyn) # SD
+
+res7 <- chisq.test(PCLC_data$PTSDyn_30, PCLC_data$BDI_sleepyn, correct=FALSE)
+
+res7
+
+esc_chisq(
+  49.884,
+  p,
+  totaln = 1029,
+  es.type = c("or"),
+  study = NULL
+) # effect size
+
+d7 <- PCLC_data %>% select(PTSDyn_44, 
+                          BDI_sleepyn)
+d7 %>%
+  sjtab(fun = "xtab", var.labels=c("PCL-C > 30", "BDI-II Sleep Disturbance"),
+        show.row.prc = TRUE, show.col.prc = TRUE, show.summary = TRUE, show.exp = TRUE, show.legend = TRUE)
+
+```
+
+```{r PTSD cutoff 49 and sleep disturbance (BDI items)}
+# PCL-C > 49 
+## sleep *ONLY* categorized with BDI-II items
+
+table(PCLC_data$PTSDyn_49, # PCLC 
+      PCLC_data$BDI_sleepyn) # SD
+
+res7 <- chisq.test(PCLC_data$PTSDyn_49, PCLC_data$BDI_sleepyn, correct=FALSE)
+
+res7
+
+d7 <- PCLC_data %>% select(PTSDyn_49, 
+                          BDI_sleepyn)
+d7 %>%
+  sjtab(fun = "xtab", var.labels=c("PCL-C > 49", "BDI-II Sleep Disturbance"),
+        show.row.prc = TRUE, show.col.prc = TRUE, show.summary = TRUE, show.exp = TRUE, show.legend = TRUE)
+
+```
+
+```{r item descriptives by group}
+
+### Binary ###
+
+# Make summary table function
+create_summary_table <- function(data, vars, group_label) {
+  data %>%
+    select(all_of(vars)) %>%
+    summarise(across(everything(), ~ list(table(factor(., levels = c(0, 1)))))) %>%
+    pivot_longer(everything(), names_to = "variable", values_to = "counts") %>%
+    unnest_wider(counts, names_sep = "_") %>%
+    rename(no = counts_0, yes = counts_1) %>%
+    mutate(group = group_label)
+}
+
+# Pull sleep variables
+vars <- c("bdi_15_new", "bdi_19_new", "pclc_2_new", "pclc_13_new")
+
+# Summary tables for each dataset with group labels
+PCLC_49_summary <- create_summary_table(data_frame_PCLC_49, vars, "PCLC_49")
+PCLC_30_summary <- create_summary_table(data_frame_PCLC_30, vars, "PCLC_30")
+PCLC_44_summary <- create_summary_table(data_frame_PCLC_44, vars, "PCLC_44")
+
+# Merge descriptives
+merged_summary <- bind_rows(PCLC_49_summary, PCLC_30_summary, PCLC_44_summary)
+
+write.csv(merged_summary, "Sleep_binary_summ.csv")
+
+### Continuous ###
+
+create_summary_table <- function(data, vars, group_label) {
+  data %>%
+    select(all_of(vars)) %>%
+    summarise(across(everything(), ~ list(table(factor(., levels = 0:6))))) %>%
+    pivot_longer(everything(), names_to = "variable", values_to = "counts") %>%
+    unnest_wider(counts, names_sep = "_") %>%
+    mutate(group = group_label)
+}
+
+vars <- c("bdi_15", "bdi_19", "pclc_2", "pclc_13")
+
+# Summary tables for each dataset with group labels
+PCLC_49_summary <- create_summary_table(data_frame_PCLC_49, vars, "PCLC_49")
+PCLC_30_summary <- create_summary_table(data_frame_PCLC_30, vars, "PCLC_30")
+PCLC_44_summary <- create_summary_table(data_frame_PCLC_44, vars, "PCLC_44")
+
+# Merge descriptives
+merged_summary <- bind_rows(PCLC_49_summary, PCLC_30_summary, PCLC_44_summary)
+
+write.csv(merged_summary, "Sleep_cont_summ.csv")
+```

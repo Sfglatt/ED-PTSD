@@ -1,0 +1,237 @@
+---
+title: "02d_EGA"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r Packages}
+# required packages
+
+if (!require("readxl")) {install.packages("readxl"); require("readxl")}
+if (!require("network")) {install.packages("network"); require("network")}
+if (!require("stats")) {install.packages("stats"); require("stats")}
+if (!require("moments")) {install.packages("moments"); require("moments")}
+if (!require("EGAnet")) {install.packages("EGAnet"); require("EGAnet")}
+if (!require("psychTools")) {install.packages("psychTools"); require("psychTools")}
+if (!require("psych")) {install.packages("psych"); require("psych")}
+if (!require("foreign")) {install.packages("foreign"); require("foreign")}
+if (!require("ggplot2")) {install.packages("ggplot2"); require("ggplot2")}
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}
+if (!require("bootnet")) {install.packages("bootnet"); require("bootnet")}
+if (!require("networktools")) {install.packages("networktools"); require("networktools")}
+if (!require("qgraph")) {install.packages("qgraph"); require("qgraph")}
+if (!require("igraph")) {install.packages("igraph"); require("igraph")}
+```
+
+```{r Data}
+
+ED_PTSD1 <- read_xlsx("C:/Users/sofel/OneDrive/Documents/Labs/UofL EAT Lab/ED_ptsd/SLEEPPTSDEDS_imputed_11-21-23.xlsx") # N 1008
+
+## replace with correct dataset! I used the most recent imputed version that I had from 11-21-23
+
+# isolate variables
+
+ED_PTSD <- ED_PTSD1[,2:17]
+```
+
+```{r Exploratory graph analysis with full sample}
+
+# apply exploratory graph analysis to variables
+
+EP_ega <- EGA(
+  data = ED_PTSD,
+  corr = "auto", 
+  model =  "glasso", 
+  algorithm =  "walktrap",
+  uni.method = "expand", 
+  plot.EGA = TRUE,
+  verbose = FALSE, 
+  seed = 123456,
+)
+
+# optimal?  Estimate optimal EGA with Walktrap
+
+potimal_fit <- EGA.fit(
+  data = ED_PTSD, algorithm = "walktrap",
+  steps = 3:8, # default
+  plot.EGA = TRUE # no plot for CRAN checks
+)
+
+EP_ega_str <- plot(EP_ega, 
+     node.size = colSums(EP_ega$network)^2 * 16) # change node size by strength
+
+EP_ega_cr_str <- plot(EP_ega, 
+     node.size = colSums(EP_ega$network)^2 * 16, 
+     layout = "circle") # if you want the layout to be a circle
+
+# summary statistics for the network
+
+summary(EP_ega)
+
+# visualize
+
+EP_ega
+EP_ega_str
+EP_ega_cr_str
+
+# bootstrap EGA
+EP_ega_boot <- bootEGA(
+  data = ED_PTSD, 
+  iter = 1000,
+  seed = 123456
+)
+
+# Summary statistics about the bootstrap EGA
+
+summary(EP_ega_boot)
+
+# Plots comparing the data EGA against 1000 bootsrapping procedure
+
+INQ_compare <- compare.EGA.plots(EP_ega, EP_ega_boot,
+  labels = c("Empirical", "Bootstrap"))
+
+# item stability
+
+EP_boot_dim <- dimensionStability(EP_ega_boot,  IS.plot = TRUE, structure = NULL)
+
+# where are the items going if not 100% stable
+
+EP_boot_dim$item.stability$item.stability$all.dimensions
+
+# node loadings in EGA is approximately equal to node strength centrality 
+net.loads(
+  EP_ega,
+  wc, # detected from EGA object
+  loading.method = "BRM", # recommended
+  rotation = NULL,
+  seed = 123456,
+)
+```
+
+
+```{r EGA ED with PTSD}
+ED_PTSD_groups<- ED_PTSD1[,2:18]
+head(ED_PTSD_groups)
+
+ED_wPTSD <- ED_PTSD_groups %>% filter(PTSDyn==1)
+ED_woPTSD <- ED_PTSD_groups %>% filter(PTSDyn==0)
+
+
+Ega_wPTSD <- EGA(
+  data = ED_wPTSD[1:16],
+  corr = "auto", 
+  model =  "glasso", 
+  algorithm =  "walktrap",
+  uni.method = "expand", 
+  plot.EGA = TRUE,
+  verbose = FALSE, 
+  seed = 123456,
+)
+
+Ega_wPTSD_str <- plot(Ega_wPTSD, 
+     node.size = colSums(Ega_wPTSD$network)^2 * 16) # change node size by strength
+Ega_wPTSD_str
+
+# bootstrap EGA
+Ega_w_PTSD_boot <- bootEGA(
+  data = ED_wPTSD[1:16], 
+  iter = 1000,
+  seed = 123456
+)
+
+# Summary statistics about the bootstrap EGA
+
+summary(Ega_w_PTSD_boot)
+
+# Plots comparing the data EGA against 1000 bootsrapping procedure
+
+INQ_compare <- compare.EGA.plots(Ega_wPTSD, Ega_w_PTSD_boot,
+  labels = c("Empirical", "Bootstrap"))
+
+# item stability
+
+Ega_w_PTSD_dim <- dimensionStability(Ega_w_PTSD_boot,  IS.plot = TRUE, structure = NULL)
+
+# where are the items going if not 100% stable
+
+Ega_w_PTSD_dim$item.stability$item.stability$all.dimensions
+
+# node loadings in EGA is approximately equal to node strength centrality 
+net.loads(
+  Ega_wPTSD,
+  wc, # detected from EGA object
+  loading.method = "BRM", # recommended
+  rotation = NULL,
+  seed = 123456,
+)
+```
+
+
+```{r EGA ED without PTSD}
+Ega_wo_PTSD <- EGA(
+  data = ED_woPTSD[1:16],
+  corr = "auto", 
+  model =  "glasso", 
+  algorithm =  "walktrap",
+  uni.method = "expand", 
+  plot.EGA = TRUE,
+  verbose = FALSE, 
+  seed = 123456,
+)
+
+Ega_wo_PTSD_str <- plot(Ega_wo_PTSD, 
+     node.size = colSums(Ega_wo_PTSD$network)^2 * 16) # change node size by strength
+Ega_wo_PTSD_str
+
+# bootstrap EGA
+Ega_wo_PTSD_boot <- bootEGA(
+  data = ED_woPTSD[1:16], 
+  iter = 1000,
+  seed = 123456
+)
+
+# Summary statistics about the bootstrap EGA
+
+summary(Ega_wo_PTSD_boot)
+
+# Plots comparing the data EGA against 1000 bootsrapping procedure
+
+INQ_compare <- compare.EGA.plots(Ega_wo_PTSD, Ega_wo_PTSD_boot,
+  labels = c("Empirical", "Bootstrap"))
+
+# item stability
+
+Ega_wo_PTSD_dim <- dimensionStability(Ega_wo_PTSD_boot,  IS.plot = TRUE, structure = NULL)
+
+# where are the items going if not 100% stable
+
+Ega_wo_PTSD_dim$item.stability$item.stability$all.dimensions
+
+# node loadings in EGA is approximately equal to node strength centrality 
+net.loads(
+  Ega_wo_PTSD,
+  wc, # detected from EGA object
+  loading.method = "BRM", # recommended
+  rotation = NULL,
+  seed = 123456,
+)
+```
+
+```{r network v latent model algorithm}
+
+ED_PTSD_LCT <- LCT(
+  data = ED_PTSD,
+  n = NULL,
+  corr =  "auto", 
+  model ="glasso", 
+  algorithm = "walktrap",
+  uni.method = "expand",
+  iter = 100,
+  seed = 123456,
+  verbose = FALSE,
+)
+
+ED_PTSD_LCT
+```
+
