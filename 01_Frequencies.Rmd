@@ -13,7 +13,19 @@ if (!require("sjPlot")) {install.packages("sjPlot"); require("sjPlot")}
 if (!require("tidyr")) {install.packages("tidyr"); require("tidyr")}
 ```
 
-```{r Import data}
+
+```{r Import original data}
+# Original dataset
+PCLC_data <- readxl::read_xlsx("Raw_Data/ABCTSLEEPPTSDEDS_COMBINED_WITHDEMOS_9-21-23.xlsx") 
+nrow(PCLC_data)
+glimpse(PCLC_data)
+
+# Filter
+summary(PCLC_data$PCLC_total)
+PCLC_data_clean <- PCLC_data %>% filter(!is.na(PCLC_total))
+```
+
+```{r Import cleaned data}
 PCLC_data <- read.csv("Raw_Data/1033ABCTSLEEPPTSDEDS_COMBINED_WITHDEMOS.csv") #1033 people with varied levels of PTSD symptoms
 
 glimpse(PCLC_data)
@@ -99,6 +111,25 @@ table(PCLC_data$pcl_50_new, useNA = "ifany")
 table(PCLC_data$pcl_31_new, useNA = "ifany")
 #  0   1 
 # 181 852 
+
+#### Sleep disturbance descriptives ####
+PCLC_data <- PCLC_data %>%
+  mutate(totalsleepdis = rowSums(select(., bdi_15_new, bdi_19_new, pclc_2_new, pclc_13_new), 
+                                 na.rm = TRUE))
+
+PCLC_data <- PCLC_data %>%
+  mutate(totalsleepdis_na = rowSums(select(., bdi_15_new, bdi_19_new, pclc_2_new, pclc_13_new), 
+                                 na.rm = FALSE))
+
+summary(PCLC_data$totalsleepdis_na)
+sd(PCLC_data$totalsleepdis_na, na.rm = TRUE)
+summary(PCLC_data$totalsleepdis)
+sd(PCLC_data$totalsleepdis)
+
+# look at NAs
+PCLC_data %>%
+  filter(is.na(bdi_15_new) | is.na(bdi_19_new) | is.na(pclc_2_new) | is.na(pclc_13_new)) %>%
+  select(bdi_15_new, bdi_19_new, pclc_2_new, pclc_13_new)
 ```
 
 ```{r PTSD cutoff 49 and sleep disturbance (all items)}
@@ -253,8 +284,9 @@ d7 %>%
 ```
 
 ```{r item descriptives by group}
+#### ED-PTSD ####
 
-### Binary ###
+# Binary
 
 # Make summary table function
 create_summary_table <- function(data, vars, group_label) {
@@ -266,6 +298,15 @@ create_summary_table <- function(data, vars, group_label) {
     rename(no = counts_0, yes = counts_1) %>%
     mutate(group = group_label)
 }
+
+data_frame_PCLC_49 <- PCLC_data %>%
+  filter(PTSDyn_49 == 1)
+
+data_frame_PCLC_44 <- PCLC_data %>%
+  filter(PTSDyn_44 == 1)
+
+data_frame_PCLC_30 <- PCLC_data %>%
+  filter(PTSDyn_30 == 1)
 
 # Pull sleep variables
 vars <- c("bdi_15_new", "bdi_19_new", "pclc_2_new", "pclc_13_new")
@@ -291,9 +332,7 @@ create_summary_table <- function(data, vars, group_label) {
     mutate(group = group_label)
 }
 
-vars <- c("bdi_15", "bdi_19", "pclc_2", "pclc_13")
 
-# Summary tables for each dataset with group labels
 PCLC_49_summary <- create_summary_table(data_frame_PCLC_49, vars, "PCLC_49")
 PCLC_30_summary <- create_summary_table(data_frame_PCLC_30, vars, "PCLC_30")
 PCLC_44_summary <- create_summary_table(data_frame_PCLC_44, vars, "PCLC_44")
@@ -302,4 +341,25 @@ PCLC_44_summary <- create_summary_table(data_frame_PCLC_44, vars, "PCLC_44")
 merged_summary <- bind_rows(PCLC_49_summary, PCLC_30_summary, PCLC_44_summary)
 
 write.csv(merged_summary, "Sleep_cont_summ.csv")
+
+#### ED alone ####
+
+# Binary
+data_frame_PCLC_49 <- PCLC_data %>%
+  filter(PTSDyn_49 == 0)
+
+data_frame_PCLC_44 <- PCLC_data %>%
+  filter(PTSDyn_44 == 0)
+
+data_frame_PCLC_30 <- PCLC_data %>%
+  filter(PTSDyn_30 == 0)
+
+PCLC_49_summary <- create_summary_table(data_frame_PCLC_49, vars, "PCLC_49")
+PCLC_30_summary <- create_summary_table(data_frame_PCLC_30, vars, "PCLC_30")
+PCLC_44_summary <- create_summary_table(data_frame_PCLC_44, vars, "PCLC_44")
+
+merged_summary <- bind_rows(PCLC_49_summary, PCLC_30_summary, PCLC_44_summary)
+
+write.csv(merged_summary, "Sleep_binary_summ2.csv", row.names = FALSE)
 ```
+
