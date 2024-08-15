@@ -8,7 +8,10 @@ if (!require("readxl")) {install.packages("readxl"); require("readxl")}
 if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}
 if (!require("descr")) {install.packages("descr"); require("descr")}
 if (!require("DescTools")) {install.packages("DescTools"); require("DescTools")}
+devtools::install_github("zief0002/educate"); library(educate)
 if (!require("esc")) {install.packages("esc"); require("esc")}
+if (!require("ggformula")) {install.packages("ggformula"); require("ggformula")}
+if (!require("mosaicCore")) {install.packages("mosaicCore"); require("mosaicCore")}
 if (!require("sjPlot")) {install.packages("sjPlot"); require("sjPlot")}
 if (!require("tidyr")) {install.packages("tidyr"); require("tidyr")}
 ```
@@ -178,7 +181,7 @@ d3 %>%
 res5 <- fisher.test(table(d3))
 res5
 
-CrossTable(PCLC_data$PTSDyn_30, PCLC_data$SleepDisyn,
+CrossTable(PCLC_data$PTSDyn_44, PCLC_data$SleepDisyn,
        fisher = T, chisq = T, expected = T,
        prop.c = F, prop.t = F, prop.chisq = F, 
        sresid = T, format = 'SPSS')
@@ -362,4 +365,105 @@ merged_summary <- bind_rows(PCLC_49_summary, PCLC_30_summary, PCLC_44_summary)
 
 write.csv(merged_summary, "Sleep_binary_summ2.csv", row.names = FALSE)
 ```
+
+```{r Proportion tests}
+# bdi_15_new, bdi_19_new, pclc_2_new, pclc_13_new
+
+#### dataframes ####
+
+PCLC_data_15 <- PCLC_data[!is.na(PCLC_data$bdi_15), ]
+PCLC_data_19 <- PCLC_data[!is.na(PCLC_data$bdi_19), ]
+PCLC_data_2 <- PCLC_data[!is.na(PCLC_data$pclc_2), ]
+PCLC_data_13 <- PCLC_data[!is.na(PCLC_data$pclc_13), ]
+
+#### z tests ####
+
+table(PCLC_data_15$PTSDyn_30, PCLC_data_15$bdi_15_new)
+ztest_1 <- prop.test(x = c(731, 117), n = c(848, 181), correct = F)
+sqrt(ztest_1$statistic)
+
+table(PCLC_data_19$PTSDyn_30, PCLC_data_19$bdi_19_new)
+(ztest_2 <- prop.test(x = c(712, 101), n = c(848, 181), correct = F))
+sqrt(ztest_2$statistic)
+
+table(PCLC_data_2$PTSDyn_30, PCLC_data_2$pclc_2_new)
+(ztest_3 <- prop.test(x = c(645, 38), n = c(852, 179), correct = F))
+sqrt(ztest_3$statistic)
+
+table(PCLC_data_13$PTSDyn_30, PCLC_data_13$pclc_13_new)
+(ztest_4 <- prop.test(x = c(737, 92), n = c(852, 180), correct = F))
+sqrt(ztest_4$statistic)
+
+table(PCLC_data_15$PTSDyn_44, PCLC_data_15$bdi_15_new)
+(ztest_5 <- prop.test(x = c(522, 327), n = c(571, 458), correct = F))
+sqrt(ztest_5$statistic)
+
+table(PCLC_data_19$PTSDyn_44, PCLC_data_19$bdi_19_new)
+(ztest_6 <- prop.test(x = c(511, 302), n = c(571, 458), correct = F))
+sqrt(ztest_6$statistic)
+
+table(PCLC_data_2$PTSDyn_44, PCLC_data_2$pclc_2_new)
+(ztest_7 <- prop.test(x = c(489, 194), n = c(574, 457), correct = F))
+sqrt(ztest_7$statistic)
+
+table(PCLC_data_13$PTSDyn_44, PCLC_data_13$pclc_13_new)
+(ztest_8 <- prop.test(x = c(525, 304), n = c(574, 458), correct = F))
+sqrt(ztest_8$statistic)
+
+#### Cohen's h ####
+
+cohens_h_ci <- function(prop_1, prop_2, n1, n2, ci = 0.95) {
+    x1 <- asin(sign(prop_1) * sqrt(abs(prop_1)))
+    x2 <- asin(sign(prop_2) * sqrt(abs(prop_2)))
+    es <- x1 - x2
+    se <- sqrt(0.25 * (1 / n1 + 1 / n2))
+    ci_diff <- qnorm(1 - (1 - ci) / 2) * se
+    return(c(h = es * 2, h_low = (es - ci_diff) * 2, h_upp = (es + ci_diff) * 2))
+}
+
+df_stats(~bdi_15_new | PTSDyn_30, data = PCLC_data_15 , props)
+2 * asin(sqrt(0.6519337)) - 2 * asin(sqrt(0.8620283)) 
+table(PCLC_data_15$PTSDyn_30)
+cohens_h_ci(0.8620283, 0.6519337, 848, 181) 
+
+df_stats(~bdi_19_new | PTSDyn_30, data = PCLC_data_19 , props)
+2 * asin(sqrt(0.5580110)) - 2 * asin(sqrt(0.8396226))
+table(PCLC_data_19$PTSDyn_30)
+cohens_h_ci(0.8396226, 0.5580110, 848, 181)
+
+df_stats(~pclc_2_new | PTSDyn_30, data = PCLC_data_2 , props)
+2 * asin(sqrt(0.2122905)) - 2 * asin(sqrt(0.7570423))
+table(PCLC_data_2$PTSDyn_44)
+cohens_h_ci(0.7570423, 0.2122905, 852, 179)
+
+df_stats(~pclc_13_new | PTSDyn_30, data = PCLC_data_13 , props)
+2 * asin(sqrt(0.5111111)) - 2 * asin(sqrt(0.8650235))
+cohens_h_ci(0.8650235, 0.5111111, 852, 180)
+
+df_stats(~bdi_15_new | PTSDyn_44, data = PCLC_data_15 , props)
+2 * asin(sqrt(0.7139738)) - 2 * asin(sqrt(0.9141856)) 
+table(PCLC_data_15$PTSDyn_44)
+cohens_h_ci(0.9141856, 0.7139738, 571, 458) 
+
+df_stats(~bdi_19_new | PTSDyn_44, data = PCLC_data_19 , props)
+2 * asin(sqrt(0.6593886)) - 2 * asin(sqrt(0.8949212))
+table(PCLC_data_19$PTSDyn_44)
+cohens_h_ci(0.8949212, 0.6593886, 571, 458)
+
+df_stats(~pclc_2_new | PTSDyn_44, data = PCLC_data_2 , props)
+2 * asin(sqrt(0.4245077)) - 2 * asin(sqrt(0.8519164))
+table(PCLC_data_2$PTSDyn_44)
+cohens_h_ci(0.8519164, 0.4245077, 574, 457)
+
+df_stats(~pclc_13_new | PTSDyn_44, data = PCLC_data_13 , props)
+2 * asin(sqrt(0.6637555)) - 2 * asin(sqrt(0.9146341))
+table(PCLC_data_13$PTSDyn_44)
+cohens_h_ci(0.9146341, 0.6637555, 574, 458)
+```
+
+
+
+
+
+
 
